@@ -2,6 +2,7 @@ package ut.edu.uthhub_socket.service;
 
 import org.springframework.web.multipart.MultipartFile;
 
+import ut.edu.uthhub_socket.dto.response.UserResponse;
 import ut.edu.uthhub_socket.model.Role;
 import ut.edu.uthhub_socket.model.User;
 
@@ -27,4 +28,5 @@ public interface IUserService {
     void updateRole(Integer userId, Role role);
 
     User register(User user);
+    UserResponse connect(UserResponse response);
 }

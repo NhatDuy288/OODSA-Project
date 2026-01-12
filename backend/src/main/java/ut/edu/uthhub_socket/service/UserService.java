@@ -5,8 +5,10 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
+import ut.edu.uthhub_socket.dto.response.UserResponse;
 import ut.edu.uthhub_socket.model.Role;
 import ut.edu.uthhub_socket.model.User;
+import ut.edu.uthhub_socket.model.UserStatus;
 import ut.edu.uthhub_socket.repository.IUserRepository;
 import java.util.Optional;
 
@@ -71,6 +73,16 @@ public class UserService implements IUserService {
         user.setRole(Role.ROLE_USER);
         User savedUser = userRepository.save(user);
         return savedUser;
+    }
+
+    @Override
+    public UserResponse connect(UserResponse response) {
+        Optional<User> user = userRepository.findByUsername(response.getUsername());
+        user.ifPresent(u ->{
+            u.setStatus(UserStatus.ONLINE);
+            userRepository.save(u);
+        });
+        return new UserResponse(user.get());
     }
 
 
