@@ -1,0 +1,49 @@
+.wrapper {
+  width: 100%;
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  padding: 10px 0px;
+}
+.avatar {
+  position: relative;
+}
+.avatar .friend,
+.avatar .messgae {
+  background-color: rgb(255, 255, 255);
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  position: absolute;
+  right: -14%;
+  bottom: -14%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.avatar .messgae {
+  background-color: #f7c53e;
+  font-size: 12px;
+  color: white;
+}
+.avatar .friend {
+  background-color: #1797f3;
+  font-size: 12px;
+  color: white;
+}
+
+.content {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+.content .time {
+  font-size: 12px;
+  color: var(--p-700);
+}
+.notRead {
+  width: 12px;
+  height: 12px;
+  background-color: var(--p-600);
+  border-radius: 50%;
+}

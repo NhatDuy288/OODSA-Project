@@ -1,6 +1,10 @@
 import { useNavigate } from "react-router-dom";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faMessage, faAddressBook } from "@fortawesome/free-regular-svg-icons";
+import {
+  faMessage,
+  faAddressBook,
+  faBell,
+} from "@fortawesome/free-regular-svg-icons";
 import {
   faGear,
   faArrowRightFromBracket,
@@ -12,14 +16,29 @@ import { useChat } from "../../../contexts/ChatContext";
 import { CHAT_TABS } from "../../../constants/contactsMenu";
 import { AuthService } from "../../../services/auth.service";
 import { logout } from "../../../api/auth";
+import { useState } from "react";
+import { createPortal } from "react-dom";
+import Notifications from "../../../components/Notifications/Notifications";
 
 function SideNavigation() {
   const { leftTab, setLeftTab } = useChat();
+  const [isShowNotifications, setIsShowNotifications] = useState(false);
   const navigate = useNavigate();
   const hanldLogout = () => {
     logout();
     navigate("/login", { replace: true });
   };
+  const handleShowNotifications = () => {
+    setIsShowNotifications((prev) => !prev);
+  };
+  const modal = isShowNotifications
+    ? createPortal(
+        <div>
+          <Notifications onClick={handleShowNotifications} />
+        </div>,
+        document.body
+      )
+    : null;
   return (
     <div className={styles.wrapper}>
       <div className={styles.top}>
@@ -38,6 +57,10 @@ function SideNavigation() {
         </NavButton>
       </div>
       <div className={styles.bottom}>
+        <NavButton onClick={handleShowNotifications}>
+          <FontAwesomeIcon icon={faBell} />
+        </NavButton>
+        {modal}
         <NavButton>
           <FontAwesomeIcon icon={faGear} />
         </NavButton>
