@@ -5,9 +5,9 @@ import org.jspecify.annotations.Nullable;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
-import ut.edu.uthhub_socket.enums.Role;
-import ut.edu.uthhub_socket.enums.UserStatus;
+import ut.edu.uthhub_socket.model.Role;
 import ut.edu.uthhub_socket.model.User;
+import ut.edu.uthhub_socket.model.UserStatus;
 
 import java.time.LocalDateTime;
 import java.util.Collection;

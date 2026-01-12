@@ -11,25 +11,29 @@ import styles from "./Register.module.css";
 
 import bg from "../../../assets/background_uth.jpg";
 import logo from "../../../assets/logo_full.png";
+import { register } from "../../../api/auth";
 
 function Register() {
   const [form, setForm] = useState({
     fullName: "",
+    username: "",
     email: "",
     password: "",
     confirmPassword: "",
+    dateOfBirth: "",
   });
 
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
 
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
     setError("");
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
 
     if (form.password !== form.confirmPassword) {
@@ -37,15 +41,29 @@ function Register() {
       return;
     }
 
-    console.log("Register data:", form);
-    alert("Demo đăng ký – chưa kết nối backend");
+    const registerData = {
+      fullName: form.fullName,
+      username: form.username,
+      email: form.email,
+      password: form.password,
+      dateOfBirth: form.dateOfBirth + "T00:00:00",
+    };
+
+    try {
+      setLoading(true);
+
+      await register(registerData);
+      alert("Đăng ký thành công!");
+      window.location.href = "/login";
+    } catch (err) {
+      setError(err.response?.data || "Đăng ký thất bại");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
-    <div
-      className={styles.wrapper}
-      style={{ backgroundImage: `url(${bg})` }}
-    >
+    <div className={styles.wrapper}>
       <div className={styles.registerBox}>
         <img src={logo} alt="UTH Logo" className={styles.logo} />
 
@@ -65,6 +83,19 @@ function Register() {
             />
           </div>
 
+          {/* USERNAME */}
+          <div className={styles.inputGroup}>
+            <FontAwesomeIcon icon={faUser} />
+            <input
+              type="text"
+              name="username"
+              placeholder="Tên đăng nhập"
+              value={form.username}
+              onChange={handleChange}
+              required
+            />
+          </div>
+
           {/* EMAIL */}
           <div className={styles.inputGroup}>
             <FontAwesomeIcon icon={faEnvelope} />
@@ -73,6 +104,17 @@ function Register() {
               name="email"
               placeholder="Email"
               value={form.email}
+              onChange={handleChange}
+              required
+            />
+          </div>
+
+          {/* DATE OF BIRTH */}
+          <div className={styles.inputGroup}>
+            <input
+              type="date"
+              name="dateOfBirth"
+              value={form.dateOfBirth}
               onChange={handleChange}
               required
             />
@@ -118,7 +160,9 @@ function Register() {
 
           {error && <p className={styles.error}>{error}</p>}
 
-          <button className={styles.submit}>ĐĂNG KÝ</button>
+          <button className={styles.submit} disabled={loading}>
+            {loading ? "ĐANG XỬ LÝ..." : "ĐĂNG KÝ"}
+          </button>
         </form>
 
         <p className={styles.back} onClick={() => window.history.back()}>

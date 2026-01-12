@@ -1,3 +1,4 @@
+import { useNavigate } from "react-router-dom";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faMessage, faAddressBook } from "@fortawesome/free-regular-svg-icons";
 import {
@@ -9,10 +10,16 @@ import NavButton from "../../../components/NavButton/NavButton";
 import styles from "./SideNavigation.module.css";
 import { useChat } from "../../../contexts/ChatContext";
 import { CHAT_TABS } from "../../../constants/contactsMenu";
+import { AuthService } from "../../../services/auth.service";
+import { logout } from "../../../api/auth";
 
 function SideNavigation() {
   const { leftTab, setLeftTab } = useChat();
-
+  const navigate = useNavigate();
+  const hanldLogout = () => {
+    logout();
+    navigate("/login", { replace: true });
+  };
   return (
     <div className={styles.wrapper}>
       <div className={styles.top}>
@@ -34,7 +41,7 @@ function SideNavigation() {
         <NavButton>
           <FontAwesomeIcon icon={faGear} />
         </NavButton>
-        <NavButton>
+        <NavButton onClick={hanldLogout}>
           <FontAwesomeIcon icon={faArrowRightFromBracket} />
         </NavButton>
       </div>

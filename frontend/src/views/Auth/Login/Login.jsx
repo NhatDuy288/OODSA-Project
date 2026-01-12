@@ -1,44 +1,57 @@
 import { useState } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faUser, faLock, faEye, faEyeSlash } from "@fortawesome/free-solid-svg-icons";
+import {
+  faUser,
+  faLock,
+  faEye,
+  faEyeSlash,
+} from "@fortawesome/free-solid-svg-icons";
 import { useNavigate } from "react-router-dom";
 import styles from "./Login.module.css";
-
 import bg from "../../../assets/background_uth.jpg";
 import logo from "../../../assets/logo_full.png";
+import { login } from "../../../api/auth.jsx";
 
 function Login() {
   const navigate = useNavigate();
+
   const [form, setForm] = useState({
     username: "",
     password: "",
   });
 
   const [showPassword, setShowPassword] = useState(false);
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
 
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
+    setError("");
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log("Login data:", form);
-    alert("Demo giao diện – chưa kết nối backend");
+
+    try {
+      setLoading(true);
+      await login(form); // 👉 gọi backend /auth/login
+      navigate("/messages"); // 👉 login thành công → vào trang protected
+    } catch (err) {
+      setError("Sai tài khoản hoặc mật khẩu");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
-    <div
-      className={styles.wrapper}
-      style={{
-        backgroundImage: `url(${bg})`,
-      }}
-    >
+    <div className={styles.wrapper}>
       <div className={styles.loginBox}>
         <img src={logo} alt="UTH Logo" className={styles.logo} />
 
         <h2 className={styles.title}>ĐĂNG NHẬP HỆ THỐNG</h2>
 
         <form onSubmit={handleSubmit} className={styles.form}>
+          {/* USERNAME */}
           <div className={styles.inputGroup}>
             <FontAwesomeIcon icon={faUser} />
             <input
@@ -51,6 +64,7 @@ function Login() {
             />
           </div>
 
+          {/* PASSWORD */}
           <div className={styles.inputGroup}>
             <FontAwesomeIcon icon={faLock} />
 
@@ -63,7 +77,6 @@ function Login() {
               required
             />
 
-            {/* 👁️ ICON XEM MẬT KHẨU */}
             <span
               className={styles.eye}
               onClick={() => setShowPassword(!showPassword)}
@@ -72,7 +85,12 @@ function Login() {
             </span>
           </div>
 
-          <button className={styles.submit}>ĐĂNG NHẬP</button>
+          {error && <p className={styles.error}>{error}</p>}
+
+          <button className={styles.submit} disabled={loading}>
+            {loading ? "ĐANG ĐĂNG NHẬP..." : "ĐĂNG NHẬP"}
+          </button>
+
           <button
             type="button"
             className={styles.registerBtn}

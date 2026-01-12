@@ -1,7 +1,8 @@
 package ut.edu.uthhub_socket.service;
 
 import org.springframework.web.multipart.MultipartFile;
-import ut.edu.uthhub_socket.enums.Role;
+
+import ut.edu.uthhub_socket.model.Role;
 import ut.edu.uthhub_socket.model.User;
 
 import java.io.IOException;

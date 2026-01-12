@@ -6,8 +6,9 @@
   display: flex;
   justify-content: center;
   align-items: center;
+  background: linear-gradient(rgba(0, 0, 0, 0.2), rgba(0, 0, 0, 0.2)),
+    url("../../../assets/background_uth.jpg");
 }
-
 
 /* KHUNG ĐĂNG NHẬP */
 .loginBox {
@@ -61,7 +62,6 @@
   transition: border-color 0.25s ease, box-shadow 0.25s ease;
 }
 
-
 /* icon */
 .inputGroup svg {
   color: #777;
@@ -76,7 +76,6 @@
   height: 100%;
   font-size: 14px;
 }
-
 
 .inputGroup:focus-within {
   border-color: #0b8a8f;
@@ -104,7 +103,6 @@
   cursor: pointer;
   transition: 0.2s;
 }
-
 
 .submit:hover {
   background: #087276;

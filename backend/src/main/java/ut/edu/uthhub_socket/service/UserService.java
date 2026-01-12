@@ -4,7 +4,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
-import ut.edu.uthhub_socket.enums.Role;
+
+import ut.edu.uthhub_socket.model.Role;
 import ut.edu.uthhub_socket.model.User;
 import ut.edu.uthhub_socket.repository.IUserRepository;
 import java.util.Optional;
