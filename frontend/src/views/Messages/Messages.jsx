@@ -1,9 +1,12 @@
 import WebSocketService from "../../services/WebSocketService";
 import { useEffect } from "react";
 import { AuthService } from "../../services/auth.service";
-import { ChatProvider } from "../../contexts/ChatContext";
+import { ChatProvider, useChat } from "../../contexts/ChatContext";
 import ChatLayout from "../../layouts/ChatLayout/ChatLayout";
-function Messages() {
+
+function MessagesContent() {
+  const { loadConversations, subscribeToMessages } = useChat();
+
   useEffect(() => {
     WebSocketService.connect(
       () => {
@@ -14,22 +17,32 @@ function Messages() {
             username: currentUser.username,
             status: "ONLINE",
           });
+
+          // Subscribe to messages after connection
+          subscribeToMessages();
         }
       },
       (error) => {
         console.log("Lỗi khi kết nối vưới websocket", error);
       }
     );
+
+    // Load conversations
+    loadConversations();
+
     return () => {
       WebSocketService.disconnect();
     };
-  }, []);
+  }, [loadConversations, subscribeToMessages]);
+
+  return <ChatLayout />;
+}
+
+function Messages() {
   return (
-    <>
-      <ChatProvider>
-        <ChatLayout />
-      </ChatProvider>
-    </>
+    <ChatProvider>
+      <MessagesContent />
+    </ChatProvider>
   );
 }
 export default Messages;

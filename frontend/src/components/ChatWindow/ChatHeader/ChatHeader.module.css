@@ -1,0 +1,96 @@
+.wrapper {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 20px;
+    background-color: var(--p-white);
+    border-bottom: var(--p-solid-boder);
+    min-height: 72px;
+}
+
+.userInfo {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.avatar {
+    position: relative;
+}
+
+.avatarImg {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+.groupAvatar {
+    width: 44px;
+    height: 44px;
+    border-radius: 10px;
+    background: linear-gradient(135deg, var(--p-500), var(--p-700));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-weight: 600;
+    font-size: 1rem;
+}
+
+.onlineIndicator {
+    position: absolute;
+    bottom: 1px;
+    right: 1px;
+    width: 10px;
+    height: 10px;
+    background-color: #22c55e;
+    border: 2px solid white;
+    border-radius: 50%;
+}
+
+.details {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.name {
+    font-size: var(--p-font-size);
+    font-weight: 600;
+    color: var(--p-950);
+}
+
+.status {
+    font-size: var(--caption-font-size);
+    color: var(--n-500);
+}
+
+.statusOnline {
+    color: #22c55e;
+}
+
+.actions {
+    display: flex;
+    gap: 8px;
+}
+
+.actionBtn {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    border: none;
+    background: transparent;
+    color: var(--n-500);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.1rem;
+    transition: all 0.2s ease;
+}
+
+.actionBtn:hover {
+    background: var(--p-hover);
+    color: var(--p-700);
+}

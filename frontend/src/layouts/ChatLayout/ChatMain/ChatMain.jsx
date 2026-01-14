@@ -1,13 +1,14 @@
 import { CHAT_TABS, CONTACTS_TAB } from "../../../constants/contactsMenu";
 import { useChat } from "../../../contexts/ChatContext";
+import ChatWindow from "../../../components/ChatWindow/ChatWindow";
 
 function ChatMain() {
   const { leftTab, selected } = useChat();
 
   if (leftTab === CHAT_TABS.MESSAGES) {
-    return <div>messages</div>;
+    return <ChatWindow />;
   } else {
-   
+
     switch (selected) {
       case CONTACTS_TAB.MY_FRIENDS:
         return <div>bạn bè</div>;

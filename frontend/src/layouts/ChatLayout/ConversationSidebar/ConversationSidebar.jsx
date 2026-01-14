@@ -1,3 +1,4 @@
+import ConversationList from "../../../components/ConversationList/ConversationList";
 import ContactList from "../../../components/ContactList/ContactList";
 import ContactSearch from "../../../components/ContactSearch/ContactSearch";
 import { CHAT_TABS } from "../../../constants/contactsMenu";
@@ -11,7 +12,7 @@ function ConversationSidebar() {
         <ContactSearch />
       </div>
       <div className={styles.content}>
-        {leftTab === CHAT_TABS.MESSAGES && <div>Nhắn tin</div>}
+        {leftTab === CHAT_TABS.MESSAGES && <ConversationList />}
         {leftTab === CHAT_TABS.CONTACTS && <ContactList />}
       </div>
     </div>
