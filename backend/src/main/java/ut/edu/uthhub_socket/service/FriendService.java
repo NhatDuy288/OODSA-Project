@@ -5,6 +5,7 @@ import org.springframework.stereotype.Service;
 import ut.edu.uthhub_socket.dto.response.FriendResponse;
 import ut.edu.uthhub_socket.model.Friend;
 import ut.edu.uthhub_socket.model.FriendshipStatus;
+import ut.edu.uthhub_socket.model.StyleNotifications;
 import ut.edu.uthhub_socket.model.User;
 import ut.edu.uthhub_socket.repository.IFriendRepository;
 import ut.edu.uthhub_socket.repository.IUserRepository;
@@ -16,7 +17,7 @@ import java.util.List;
 public class FriendService implements IFriendService{
     private final IFriendRepository friendRepository;
     private final IUserRepository userRepository;
-
+    private final INotificationsService notificationsService;
     @Override
     public void sendFriendRequestByUsername(Integer senderId, String receiverUsername) {
 
@@ -43,6 +44,7 @@ public class FriendService implements IFriendService{
         friend.setStatus(FriendshipStatus.PENDING);
 
         friendRepository.save(friend);
+        notificationsService.sendFriendNotification(receiver.getId(),sender.getId(), StyleNotifications.FRIEND_REQUEST);
     }
 
     @Override
@@ -55,6 +57,7 @@ public class FriendService implements IFriendService{
 
         f.setStatus(FriendshipStatus.ACCEPTED);
         friendRepository.save(f);
+        notificationsService.sendFriendNotification(f.getUser().getId(),userId, StyleNotifications.FRIEND_ACCEPTED);
     }
 
     @Override

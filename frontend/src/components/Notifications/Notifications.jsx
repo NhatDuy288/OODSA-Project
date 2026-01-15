@@ -6,12 +6,16 @@ import {
   getMyNotificationsAndIsReadFalse,
   updateIsRead,
 } from "../../api/notifications";
+import { AuthService } from "../../services/auth.service";
+import WebSocketService from "../../services/WebSocketService";
+
 
 function Notifications({ onClick }) {
   const [notifications, setNotifications] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const allBtnRef = useRef(null);
   const [activeTab, setActiveTab] = useState("all");
+  const currentUser = AuthService.getUser();
   useEffect(() => {
     handleGetAllNotification();
     allBtnRef.current?.focus();
@@ -61,6 +65,25 @@ function Notifications({ onClick }) {
       console.log(err);
     }
   };
+  useEffect(() => {
+    if (!currentUser?.id) return;
+
+    const sub = WebSocketService.subscribe(
+      `/topic/notifications/${currentUser.id}`,
+      (data) => {
+       
+        setNotifications((prev) => {
+          if (prev.some((n) => n.id === data.id)) return prev;
+
+          if (activeTab === "unread" && data.isRead) return prev;
+
+          return [data, ...prev];
+        });
+      }
+    );
+
+    return () => sub?.unsubscribe();
+  }, [currentUser?.id, activeTab]);
 
   return (
     <div className={styles.modalOverlay} onClick={onClick}>
