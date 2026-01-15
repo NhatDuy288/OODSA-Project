@@ -1,7 +1,7 @@
 import { CHAT_TABS, CONTACTS_TAB } from "../../../constants/contactsMenu";
 import { useChat } from "../../../contexts/ChatContext";
 import ChatWindow from "../../../components/ChatWindow/ChatWindow";
-
+import FriendRequests from "../../../components/FriendRequests/FriendRequests";
 function ChatMain() {
   const { leftTab, selected } = useChat();
 
@@ -14,7 +14,7 @@ function ChatMain() {
         return <div>bạn bè</div>;
 
       case CONTACTS_TAB.FRIEND_REQUESTS:
-        return <div>lời mời</div>;
+        return <FriendRequests />;
 
       case CONTACTS_TAB.GROUPS:
         return <div>nhóm và cộng đồng</div>;
