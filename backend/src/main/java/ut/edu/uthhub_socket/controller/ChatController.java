@@ -13,10 +13,14 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.ResponseBody;
 import ut.edu.uthhub_socket.dto.request.ChatMessageRequest;
+import ut.edu.uthhub_socket.dto.request.TypingRequest;
 import ut.edu.uthhub_socket.dto.response.ConversationResponse;
 import ut.edu.uthhub_socket.dto.response.MessageResponse;
+import ut.edu.uthhub_socket.dto.response.TypingResponse;
 import ut.edu.uthhub_socket.model.Conversation;
 import ut.edu.uthhub_socket.model.Message;
+import ut.edu.uthhub_socket.model.User;
+import ut.edu.uthhub_socket.repository.IUserRepository;
 import ut.edu.uthhub_socket.service.MessageService;
 
 import java.util.List;
@@ -29,6 +33,7 @@ public class ChatController {
 
     private final SimpMessagingTemplate messagingTemplate;
     private final MessageService messageService;
+    private final IUserRepository userRepository;
 
     @MessageMapping("/chat.send")
     public void sendMessage(@Payload ChatMessageRequest request, Authentication authentication) {
@@ -64,6 +69,33 @@ public class ChatController {
         } catch (Exception e) {
             log.error("=== ERROR SENDING MESSAGE ===");
             log.error("Error: {}", e.getMessage(), e);
+        }
+    }
+
+    @MessageMapping("/chat.typing")
+    public void userTyping(@Payload TypingRequest request, Authentication authentication) {
+        log.info("=== TYPING EVENT ===");
+        log.info("ConversationId: {}, isTyping: {}, User: {}",
+                request.getConversationId(), request.isTyping(), authentication.getName());
+
+        try {
+            User user = userRepository.findByUsername(authentication.getName())
+                    .orElseThrow(() -> new RuntimeException("User not found"));
+
+            TypingResponse response = new TypingResponse(
+                    request.getConversationId(),
+                    user.getId(),
+                    user.getUsername(),
+                    user.getFullName(),
+                    request.isTyping());
+
+            // Broadcast typing status to conversation topic
+            String topic = "/topic/conversation/" + request.getConversationId() + "/typing";
+            log.info("Broadcasting typing status to: {}", topic);
+            messagingTemplate.convertAndSend(topic, response);
+
+        } catch (Exception e) {
+            log.error("Error broadcasting typing status: {}", e.getMessage(), e);
         }
     }
 
