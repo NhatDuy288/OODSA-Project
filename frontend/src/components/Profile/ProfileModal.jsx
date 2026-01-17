@@ -1,4 +1,3 @@
-// ProfileModal.jsx
 import { useEffect, useMemo, useState } from "react";
 import styles from "./ProfileModal.module.css";
 import { getMyProfile, updateMyProfile } from "../../api/users.jsx";
@@ -28,7 +27,7 @@ function buildLocalDateTimeFromParts({ day, month, year }) {
 }
 
 function ProfileModal({ isOpen, onClose }) {
-    const [mode, setMode] = useState("view");
+    const [mode, setMode] = useState("view"); // "view" | "edit" | "avatar"
     const [isLoading, setIsLoading] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
     const [error, setError] = useState("");
@@ -44,7 +43,6 @@ function ProfileModal({ isOpen, onClose }) {
     });
 
     const [initialForm, setInitialForm] = useState(null);
-    const [isAvatarEditorOpen, setIsAvatarEditorOpen] = useState(false);
 
     const years = useMemo(() => {
         const current = new Date().getFullYear();
@@ -94,19 +92,34 @@ function ProfileModal({ isOpen, onClose }) {
     };
 
     const handleClose = () => {
+        if (isSaving) return;
         setError("");
         setMode("view");
         onClose();
     };
 
     const goEdit = () => {
+        if (isSaving) return;
         setError("");
         setMode("edit");
     };
 
+    const goAvatar = () => {
+        if (isSaving) return;
+        setError("");
+        setMode("avatar");
+    };
+
     const goBackToView = () => {
+        if (isSaving) return;
         setError("");
         if (initialForm) setForm(initialForm);
+        setMode("view");
+    };
+
+    const goBackFromAvatar = () => {
+        if (isSaving) return;
+        setError("");
         setMode("view");
     };
 
@@ -188,6 +201,9 @@ function ProfileModal({ isOpen, onClose }) {
             setProfile(updated);
             setForm(nextForm);
             setInitialForm(nextForm);
+
+            // sau khi lưu avatar -> quay về view
+            setMode("view");
         } catch {
             setError("Cập nhật ảnh thất bại. Thử lại.");
         } finally {
@@ -196,7 +212,11 @@ function ProfileModal({ isOpen, onClose }) {
     };
 
     const sliderClass =
-        mode === "edit" ? `${styles.slider} ${styles.sliderEdit}` : styles.slider;
+        mode === "edit"
+            ? `${styles.slider} ${styles.sliderEdit}`
+            : mode === "avatar"
+                ? `${styles.slider} ${styles.sliderAvatar}`
+                : styles.slider;
 
     if (!isOpen) return null;
 
@@ -215,7 +235,7 @@ function ProfileModal({ isOpen, onClose }) {
                         avatarValue={form.avatar}
                         onClose={handleClose}
                         onEdit={goEdit}
-                        onEditAvatar={() => setIsAvatarEditorOpen(true)}
+                        onEditAvatar={goAvatar}   // ✅ mở panel avatar bằng slider
                         isSaving={isSaving}
                     />
 
@@ -234,15 +254,17 @@ function ProfileModal({ isOpen, onClose }) {
                         onChangeDOB={setDOBPart}
                         onSave={handleSave}
                     />
-                </div>
 
-                <AvatarEditorModal
-                    styles={styles}
-                    isOpen={isAvatarEditorOpen}
-                    onClose={() => setIsAvatarEditorOpen(false)}
-                    onApply={saveAvatarOnly}
-                    initialSrc={form.avatar || profile?.avatar || ""}
-                />
+                    <AvatarEditorModal
+                        styles={styles}
+                        isOpen={mode === "avatar"} // ✅ panel thứ 3
+                        onClose={handleClose}      // nút X đóng toàn modal
+                        onBack={goBackFromAvatar}  // nút back trượt về view
+                        onApply={saveAvatarOnly}
+                        initialSrc={form.avatar || profile?.avatar || ""}
+                        isSaving={isSaving}
+                    />
+                </div>
             </div>
         </div>
     );
