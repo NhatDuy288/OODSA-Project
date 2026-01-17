@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faXmark, faMagnifyingGlass } from "@fortawesome/free-solid-svg-icons";
@@ -63,6 +63,16 @@ function AddFriend({ onClose }) {
     }
   };
 
+  const me = useMemo(() => {
+    try {
+      return JSON.parse(localStorage.getItem("user") || "null");
+    } catch {
+      return null;
+    }
+  }, []);
+
+  const myId = me?.id;
+
   const handleSendRequest = async () => {
     const username = foundUser?.username;
     if (!username) return;
@@ -85,6 +95,9 @@ function AddFriend({ onClose }) {
       setIsSending(false);
     }
   };
+
+  const isMe =
+    foundUser && myId && Number(foundUser.id) === Number(myId);
 
   const body = (
     <div className={styles.overlay} onClick={handleWrapperClick}>
@@ -163,29 +176,33 @@ function AddFriend({ onClose }) {
                 </div>
               </div>
 
-              <div style={{ display: "flex", gap: "8px" }}>
-                <button
-                  className={styles.addBtn}
-                  onClick={() => {
-                    startNewConversation(foundUser);
-                    onClose();
-                  }}
-                  style={{ background: "#0084ff" }}
-                  title="Nhắn tin ngay"
-                >
-                  Nhắn tin
-                </button>
+              {isMe ? (
+                <span className={styles.meTag}>Bạn</span>
+              ) : (
+                <div className={styles.actions}>
+                  <button
+                    className={`${styles.actionBtn} ${styles.actionGhost}`}
+                    onClick={() => {
+                      startNewConversation(foundUser);
+                      onClose();
+                    }}
+                    title="Nhắn tin ngay"
+                    disabled={isSending} // optional
+                  >
+                    Nhắn tin
+                  </button>
 
-                {/* Keep Friend Request button if needed, or hide it. Shown for completeness */}
-                <button
-                  className={styles.addBtn}
-                  onClick={handleSendRequest}
-                  disabled={isSending || foundUser._requested}
-                  style={{ background: foundUser._requested ? "#ccc" : "#4CAF50" }}
-                >
-                  {foundUser._requested ? "Đã gửi" : "Kết bạn"}
-                </button>
-              </div>
+                  <button
+                    className={`${styles.actionBtn} ${styles.actionPrimary} ${foundUser._requested ? styles.actionDisabled : ""
+                      }`}
+                    onClick={handleSendRequest}
+                    disabled={isSending || foundUser._requested}
+                    title="Gửi lời mời kết bạn"
+                  >
+                    {foundUser._requested ? "Đã gửi" : isSending ? "Đang gửi..." : "Kết bạn"}
+                  </button>
+                </div>
+              )}
             </div>
           )}
         </div>

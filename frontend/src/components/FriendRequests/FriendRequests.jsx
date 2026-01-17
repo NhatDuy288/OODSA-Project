@@ -6,13 +6,17 @@ import {
   getFriendRequests,
   acceptFriendRequest,
   rejectFriendRequest,
+  getSentFriendRequests,
+  cancelFriendRequest,
 } from "../../api/friends";
 
 function FriendRequests() {
-  const [requests, setRequests] = useState([]);
+  const [received, setReceived] = useState([]);
+  const [sent, setSent] = useState([]);
   const [loading, setLoading] = useState(true);
+
+  // type: "accept" | "reject" | "cancel"
   const [acting, setActing] = useState({ id: null, type: null });
-  // type: "accept" | "reject"
   const [toast, setToast] = useState("");
 
   const showToast = (msg) => {
@@ -39,7 +43,6 @@ function FriendRequests() {
     if (!iso) return "";
     const d = new Date(iso);
     if (Number.isNaN(d.getTime())) return "";
-
     const pad = (n) => String(n).padStart(2, "0");
     const dd = pad(d.getDate());
     const mm = pad(d.getMonth() + 1);
@@ -49,28 +52,31 @@ function FriendRequests() {
     return `${dd}/${mm}/${yy} - ${hh}:${min}`;
   };
 
-  const receivedCount = useMemo(() => requests.length, [requests]);
+  const receivedCount = useMemo(() => received.length, [received]);
+  const sentCount = useMemo(() => sent.length, [sent]);
 
-  const fetchRequests = async () => {
+  const fetchAll = async () => {
     try {
       setLoading(true);
-      const res = await getFriendRequests();
-      setRequests(normalize(res));
+      const [r1, r2] = await Promise.all([getFriendRequests(), getSentFriendRequests()]);
+      setReceived(normalize(r1));
+      setSent(normalize(r2));
     } catch (err) {
-      console.log("getFriendRequests error:", err);
+      console.log("fetchAll error:", err);
       const msg =
         err?.response?.data?.message ||
         err?.response?.data ||
         "Không tải được danh sách lời mời";
       showToast(msg);
-      setRequests([]);
+      setReceived([]);
+      setSent([]);
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchRequests();
+    fetchAll();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -82,14 +88,10 @@ function FriendRequests() {
       setActing({ id, type: "accept" });
       await acceptFriendRequest(id);
       showToast("✅ Đã đồng ý kết bạn");
-      setRequests((prev) => prev.filter((x) => x?.requestId !== id));
+      setReceived((prev) => prev.filter((x) => x?.requestId !== id));
     } catch (err) {
       console.log("acceptFriendRequest error:", err);
-      const msg =
-        err?.response?.data?.message ||
-        err?.response?.data ||
-        "❌ Đồng ý thất bại";
-      showToast(msg);
+      showToast(err?.response?.data?.message || err?.response?.data || "❌ Đồng ý thất bại");
     } finally {
       setActing({ id: null, type: null });
     }
@@ -103,14 +105,27 @@ function FriendRequests() {
       setActing({ id, type: "reject" });
       await rejectFriendRequest(id);
       showToast("✅ Đã từ chối");
-      setRequests((prev) => prev.filter((x) => x?.requestId !== id));
+      setReceived((prev) => prev.filter((x) => x?.requestId !== id));
     } catch (err) {
       console.log("rejectFriendRequest error:", err);
-      const msg =
-        err?.response?.data?.message ||
-        err?.response?.data ||
-        "❌ Từ chối thất bại";
-      showToast(msg);
+      showToast(err?.response?.data?.message || err?.response?.data || "❌ Từ chối thất bại");
+    } finally {
+      setActing({ id: null, type: null });
+    }
+  };
+
+  const handleCancel = async (req) => {
+    const id = req?.requestId;
+    if (!id) return showToast("Thiếu requestId");
+
+    try {
+      setActing({ id, type: "cancel" });
+      await cancelFriendRequest(id);
+      showToast("✅ Đã thu hồi lời mời");
+      setSent((prev) => prev.filter((x) => x?.requestId !== id));
+    } catch (err) {
+      console.log("cancelFriendRequest error:", err);
+      showToast(err?.response?.data?.message || err?.response?.data || "❌ Thu hồi thất bại");
     } finally {
       setActing({ id: null, type: null });
     }
@@ -123,6 +138,7 @@ function FriendRequests() {
       </div>
 
       <div className={styles.content}>
+        {/* ===== RECEIVED ===== */}
         <div className={styles.sectionHeader}>
           <p className={styles.sectionTitle}>Lời mời đã nhận</p>
           <span className={styles.badge}>{receivedCount}</span>
@@ -135,10 +151,9 @@ function FriendRequests() {
         )}
 
         {!loading && receivedCount > 0 && (
-          <div className={styles.list}>
-            {requests.map((req) => {
+          <div className={styles.receivedList}>
+            {received.map((req) => {
               const id = req?.requestId;
-
               const isAccepting = acting.id === id && acting.type === "accept";
               const isRejecting = acting.id === id && acting.type === "reject";
               const disabled = isAccepting || isRejecting;
@@ -147,15 +162,11 @@ function FriendRequests() {
                 <div className={styles.card} key={id}>
                   <div className={styles.cardLeft}>
                     <div className={styles.avatar}>
-                      <Avatar
-                        src={req?.avatar || ""}
-                        alt={req?.fullName || req?.username || "avatar"}
-                      />
+                      <Avatar src={req?.avatar || ""} alt={req?.fullName || req?.username || "avatar"} />
                     </div>
 
                     <div className={styles.meta}>
                       <p className={styles.name}>{req?.fullName || "Người dùng"}</p>
-
                       <p className={styles.sub}>
                         {req?.username ? `@${req.username}` : "—"}
                         {req?.createdAt ? ` • ${formatTime(req.createdAt)}` : ""}
@@ -170,25 +181,69 @@ function FriendRequests() {
                   </div>
 
                   <div className={styles.actions}>
-                    <button
-                      className={styles.btnReject}
-                      onClick={() => handleReject(req)}
-                      disabled={disabled}
-                    >
+                    <button className={styles.btnReject} onClick={() => handleReject(req)} disabled={disabled}>
                       {isRejecting ? "Đang..." : "Từ chối"}
                     </button>
 
-                    <button
-                      className={styles.btnAccept}
-                      onClick={() => handleAccept(req)}
-                      disabled={disabled}
-                    >
+                    <button className={styles.btnAccept} onClick={() => handleAccept(req)} disabled={disabled}>
                       {isAccepting ? "Đang..." : "Đồng ý"}
                     </button>
                   </div>
                 </div>
               );
             })}
+          </div>
+        )}
+
+        {/* ===== SENT ===== */}
+        <div className={styles.sectionHeader2}>
+          <p className={styles.sectionTitle}>Lời mời đã gửi</p>
+          <span className={styles.badge}>{sentCount}</span>
+        </div>
+
+        {!loading && sentCount === 0 && (
+          <div className={styles.stateText}>Bạn chưa gửi lời mời nào</div>
+        )}
+
+        {!loading && sentCount > 0 && (
+          <div className={styles.sentGrid}>
+            {sent.map((req) => {
+              const id = req?.requestId;
+              const isCanceling = acting.id === id && acting.type === "cancel";
+
+              return (
+                <div className={styles.sentCard} key={id}>
+                  <div className={styles.sentTop}>
+                    <div className={styles.avatar}>
+                      <Avatar src={req?.avatar || ""} alt={req?.fullName || req?.username || "avatar"} />
+                    </div>
+
+                    <div className={styles.sentMeta}>
+                      <p className={styles.name}>{req?.fullName || "Người dùng"}</p>
+                      <p className={styles.sub}>
+                        {req?.createdAt ? formatTime(req.createdAt) : "Bạn đã gửi lời mời"}
+                      </p>
+                    </div>
+                  </div>
+
+                  <button
+                    className={styles.btnCancel}
+                    onClick={() => handleCancel(req)}
+                    disabled={isCanceling}
+                    title="Thu hồi lời mời"
+                  >
+                    {isCanceling ? "Đang..." : "Thu hồi lời mời"}
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        {/* Optional giống Zalo */}
+        {!loading && sentCount > 0 && (
+          <div className={styles.moreWrap}>
+            <button className={styles.btnMore}>Xem thêm</button>
           </div>
         )}
       </div>

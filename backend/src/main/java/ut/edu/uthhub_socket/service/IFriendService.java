@@ -14,4 +14,7 @@ public interface IFriendService {
     List<FriendResponse> getFriendRequests(Integer userId);
 
     List<FriendResponse> getFriends(Integer userId);
+
+    List<FriendResponse> getSentFriendRequests(Integer userId);
+
 }

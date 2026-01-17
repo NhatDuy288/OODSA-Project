@@ -15,7 +15,7 @@ public interface IFriendRepository extends JpaRepository<Friend, Integer> {
 
     List<Friend> findByFriendIdAndStatus(Integer receiverId, FriendshipStatus status);
 
-    List<Friend> findByUserIdAndStatus(Integer senderId, FriendshipStatus status);
+    List<Friend> findByUserIdAndStatus(Integer userId, FriendshipStatus status);
 
     List<Friend> findByStatusAndUserIdOrStatusAndFriendId(
             FriendshipStatus s1, Integer senderId,

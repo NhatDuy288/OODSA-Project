@@ -107,10 +107,26 @@ public class FriendService implements IFriendService{
                             u.getFullName(),
                             f.getCreatedAt(),
                             f.getStatus(),
-                            f.getUser().getAvatar(),
-                            f.getUser().getUsername()
+                            u.getAvatar(),
+                            u.getUsername()
                     );
                 })
+                .toList();
+    }
+
+    @Override
+    public List<FriendResponse> getSentFriendRequests(Integer userId) {
+        return friendRepository.findByUserIdAndStatus(userId, FriendshipStatus.PENDING)
+                .stream()
+                .map(f -> new FriendResponse(
+                        f.getId(),
+                        f.getFriend().getId(),
+                        f.getFriend().getFullName(),
+                        f.getCreatedAt(),
+                        f.getStatus(),
+                        f.getFriend().getAvatar(),
+                        f.getFriend().getUsername()
+                ))
                 .toList();
     }
 }

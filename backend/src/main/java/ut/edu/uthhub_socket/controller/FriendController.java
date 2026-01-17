@@ -63,4 +63,9 @@ public class FriendController {
                 friendService.getFriends(userDetails.getId())
         );
     }
+
+    @GetMapping("/requests/sent")
+    public ResponseEntity<?> getSentRequests(@AuthenticationPrincipal UserDetailsImpl userDetails) {
+        return ResponseEntity.ok(friendService.getSentFriendRequests(userDetails.getId()));
+    }
 }

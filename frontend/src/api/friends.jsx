@@ -24,3 +24,13 @@ export const rejectFriendRequest = (id) => {
 export const getMyFriends = () => {
   return axiosInstance.get("/friends");
 };
+
+// lời mời đã gửi: GET /api/friends/requests/sent
+export const getSentFriendRequests = () => {
+  return axiosInstance.get("/friends/requests/sent");
+};
+
+// thu hồi: POST /api/friends/{id}/cancel
+export const cancelFriendRequest = (id) => {
+  return axiosInstance.post(`/friends/${id}/cancel`);
+};
