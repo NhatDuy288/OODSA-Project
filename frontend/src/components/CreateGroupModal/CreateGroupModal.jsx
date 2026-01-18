@@ -1,17 +1,11 @@
 import { useState, useEffect } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import {
-    faTimes,
-    faSearch,
-    faCamera,
-    faCheck,
-} from "@fortawesome/free-solid-svg-icons";
+import { faTimes, faSearch, faCamera, faCheck } from "@fortawesome/free-solid-svg-icons";
 import { useChat } from "../../contexts/ChatContext";
-import defaultAvatar from "../../assets/default_avatar.jpg";
 import styles from "./CreateGroupModal.module.css";
 import { getMyFriends } from "../../api/friends";
 import conversationApi from "../../api/conversationApi";
-
+import Avatar from "../Avatar/Avatar";
 
 function CreateGroupModal({ isOpen, onClose }) {
     const [groupName, setGroupName] = useState("");
@@ -21,14 +15,12 @@ function CreateGroupModal({ isOpen, onClose }) {
     const [selectedMembers, setSelectedMembers] = useState([]);
     const { selectConversation, loadConversations } = useChat();
 
-    // Load users on mount/open
     useEffect(() => {
         if (isOpen) {
             loadUsers();
         }
     }, [isOpen]);
 
-    // Filter users based on search query
     useEffect(() => {
         if (searchQuery.trim()) {
             const filtered = users.filter(
@@ -47,14 +39,14 @@ function CreateGroupModal({ isOpen, onClose }) {
             const res = await getMyFriends();
             const list = res?.data ?? res ?? [];
 
-            // list là FriendResponse[]: { userId, fullName, avatar, username, ... }
             const mapped = list
                 .filter((x) => (x?.status ?? "").toUpperCase() === "ACCEPTED")
                 .map((f) => ({
                     id: f.userId,
                     fullName: f.fullName,
-                    email: f.username || "",     // UI đang hiển thị "email", mình gán username vào
-                    avatarUrl: f.avatar || null,
+                    email: f.username || "",
+                    // NOTE: giữ RAW, Avatar sẽ tự resolve
+                    avatarUrl: f.avatar || f.avatarUrl || null,
                 }));
 
             setUsers(mapped);
@@ -63,7 +55,6 @@ function CreateGroupModal({ isOpen, onClose }) {
             setUsers([]);
         }
     };
-
 
     const toggleMember = (user) => {
         if (selectedMembers.find((m) => m.id === user.id)) {
@@ -104,7 +95,6 @@ function CreateGroupModal({ isOpen, onClose }) {
         setSelectedMembers([]);
     };
 
-    // Get initials for avatar preview
     const getInitials = (name) => {
         if (!name) return "N";
         return name
@@ -118,12 +108,8 @@ function CreateGroupModal({ isOpen, onClose }) {
     const isValid = groupName.trim() && selectedMembers.length >= 2;
 
     return (
-        <div
-            className={`${styles.overlay} ${isOpen ? styles.overlayVisible : ""}`}
-            onClick={handleClose}
-        >
+        <div className={`${styles.overlay} ${isOpen ? styles.overlayVisible : ""}`} onClick={handleClose}>
             <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
-                {/* Header */}
                 <div className={styles.header}>
                     <span className={styles.title}>Tạo nhóm mới</span>
                     <button className={styles.closeBtn} onClick={handleClose}>
@@ -131,11 +117,8 @@ function CreateGroupModal({ isOpen, onClose }) {
                     </button>
                 </div>
 
-                {/* Content */}
                 <div className={styles.content}>
-                    {/* Group Info Section */}
                     <div className={styles.groupInfoSection}>
-                        {/* Avatar Upload */}
                         <div className={styles.avatarUpload}>
                             <div className={styles.avatarPreview}>
                                 {getInitials(groupName)}
@@ -146,7 +129,6 @@ function CreateGroupModal({ isOpen, onClose }) {
                             <span className={styles.avatarHint}>Nhấn để thay đổi ảnh nhóm</span>
                         </div>
 
-                        {/* Group Name Input */}
                         <div className={styles.inputGroup}>
                             <label className={styles.inputLabel}>Tên nhóm *</label>
                             <input
@@ -159,16 +141,12 @@ function CreateGroupModal({ isOpen, onClose }) {
                         </div>
                     </div>
 
-                    {/* Member Selection */}
                     <div className={styles.memberSection}>
                         <div className={styles.sectionHeader}>
                             <span className={styles.sectionTitle}>Thêm thành viên</span>
-                            <span className={styles.memberCount}>
-                Đã chọn: {selectedMembers.length}/∞
-              </span>
+                            <span className={styles.memberCount}>Đã chọn: {selectedMembers.length}/∞</span>
                         </div>
 
-                        {/* Search Box */}
                         <div className={styles.searchBox}>
                             <FontAwesomeIcon icon={faSearch} className={styles.searchIcon} />
                             <input
@@ -180,16 +158,11 @@ function CreateGroupModal({ isOpen, onClose }) {
                             />
                         </div>
 
-                        {/* Selected Members */}
                         {selectedMembers.length > 0 && (
                             <div className={styles.selectedMembers}>
                                 {selectedMembers.map((member) => (
                                     <div key={member.id} className={styles.selectedMember}>
-                                        <img
-                                            src={member.avatarUrl || defaultAvatar}
-                                            alt={member.fullName}
-                                            className={styles.selectedMemberAvatar}
-                                        />
+                                        <Avatar src={member.avatarUrl || ""} alt={member.fullName} size={24} />
                                         <span>{member.fullName.split(" ").pop()}</span>
                                         <button
                                             className={styles.removeMemberBtn}
@@ -202,30 +175,21 @@ function CreateGroupModal({ isOpen, onClose }) {
                             </div>
                         )}
 
-                        {/* User List */}
                         <div className={styles.userList}>
                             {filteredUsers.map((user) => {
                                 const isSelected = selectedMembers.find((m) => m.id === user.id);
                                 return (
                                     <div
                                         key={user.id}
-                                        className={`${styles.userItem} ${
-                                            isSelected ? styles.userItemSelected : ""
-                                        }`}
+                                        className={`${styles.userItem} ${isSelected ? styles.userItemSelected : ""}`}
                                         onClick={() => toggleMember(user)}
                                     >
-                                        <div
-                                            className={`${styles.checkbox} ${
-                                                isSelected ? styles.checkboxChecked : ""
-                                            }`}
-                                        >
+                                        <div className={`${styles.checkbox} ${isSelected ? styles.checkboxChecked : ""}`}>
                                             {isSelected && <FontAwesomeIcon icon={faCheck} />}
                                         </div>
-                                        <img
-                                            src={user.avatarUrl || defaultAvatar}
-                                            alt={user.fullName}
-                                            className={styles.userAvatar}
-                                        />
+
+                                        <Avatar src={user.avatarUrl || ""} alt={user.fullName} size={40} />
+
                                         <div className={styles.userInfo}>
                                             <div className={styles.userName}>{user.fullName}</div>
                                             <div className={styles.userEmail}>{user.email}</div>
@@ -237,16 +201,11 @@ function CreateGroupModal({ isOpen, onClose }) {
                     </div>
                 </div>
 
-                {/* Footer */}
                 <div className={styles.footer}>
                     <button className={styles.cancelBtn} onClick={handleClose}>
                         Hủy
                     </button>
-                    <button
-                        className={styles.createBtn}
-                        onClick={handleCreateGroup}
-                        disabled={!isValid}
-                    >
+                    <button className={styles.createBtn} onClick={handleCreateGroup} disabled={!isValid}>
                         Tạo nhóm {selectedMembers.length >= 2 && `(${selectedMembers.length + 1})`}
                     </button>
                 </div>

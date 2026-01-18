@@ -6,24 +6,19 @@ import { AuthService } from "../../../services/auth.service";
 import MessageBubble from "../MessageBubble/MessageBubble";
 import styles from "./MessageList.module.css";
 
-function MessageList() {
+function MessageList({ onAvatarClick }) {
     const { messages, currentConversation, isLoadingMessages } = useChat();
     const messagesEndRef = useRef(null);
     const currentUser = AuthService.getUser();
-
-    console.log("[MessageList] Rendering with messages:", messages);
-    console.log("[MessageList] Messages length:", messages?.length);
-
-    // Auto scroll to bottom on new messages
-    useEffect(() => {
-        scrollToBottom();
-    }, [messages]);
 
     const scrollToBottom = () => {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
     };
 
-    // Format date for divider
+    useEffect(() => {
+        scrollToBottom();
+    }, [messages]);
+
     const formatDate = (dateString) => {
         if (!dateString) return "";
         const date = new Date(dateString);
@@ -31,55 +26,36 @@ function MessageList() {
         const yesterday = new Date(today);
         yesterday.setDate(yesterday.getDate() - 1);
 
-        if (date.toDateString() === today.toDateString()) {
-            return "Hôm nay";
-        } else if (date.toDateString() === yesterday.toDateString()) {
-            return "Hôm qua";
-        } else {
-            return date.toLocaleDateString("vi-VN", {
-                day: "2-digit",
-                month: "2-digit",
-                year: "numeric",
-            });
-        }
+        if (date.toDateString() === today.toDateString()) return "Hôm nay";
+        if (date.toDateString() === yesterday.toDateString()) return "Hôm qua";
+        return date.toLocaleDateString("vi-VN", { day: "2-digit", month: "2-digit", year: "numeric" });
     };
 
-    // Group messages by date
-    const groupMessagesByDate = (messages) => {
-        if (!messages) return [];
-
+    const groupMessagesByDate = (list) => {
+        if (!list) return [];
         const groups = [];
         let currentDate = null;
 
-        messages.forEach((message, index) => {
-            const messageDate = new Date(message.createdAt).toDateString();
-
-            if (messageDate !== currentDate) {
-                currentDate = messageDate;
-                groups.push({
-                    type: "date",
-                    date: message.createdAt,
-                    id: `date-${index}`,
-                });
+        list.forEach((message, idx) => {
+            const d = new Date(message.createdAt).toDateString();
+            if (d !== currentDate) {
+                currentDate = d;
+                groups.push({ type: "date", date: message.createdAt, id: `date-${idx}` });
             }
-
-            groups.push({
-                type: "message",
-                message,
-                id: message.id,
-            });
+            groups.push({ type: "message", message, id: message.id });
         });
 
         return groups;
     };
 
-    // Check if should show avatar (last message from user in a group)
-    const shouldShowAvatar = (messages, index, message) => {
-        if (index === messages.length - 1) return true;
-        const nextMessage = messages[index + 1];
-        if (nextMessage.type === "date") return true;
-        if (nextMessage.message?.sender?.id !== message.sender?.id) return true;
-        return false;
+    const shouldShowAvatar = (grouped, index, message) => {
+        if (index === grouped.length - 1) return true;
+        const next = grouped[index + 1];
+        if (next.type === "date") return true;
+
+        const nextSenderId = next.message?.sender?.id;
+        const curSenderId = message?.sender?.id;
+        return String(nextSenderId) !== String(curSenderId);
     };
 
     const groupedMessages = groupMessagesByDate(messages);
@@ -113,8 +89,8 @@ function MessageList() {
                     }
 
                     const message = item.message;
-                    const isSent = message.sender?.id === currentUser?.id;
-                    const showAvatar = shouldShowAvatar(groupedMessages, index, message);
+                    const isSent = Number(message?.sender?.id) === Number(currentUser?.id);
+                    const showAvatar = !isSent && shouldShowAvatar(groupedMessages, index, message);
 
                     return (
                         <MessageBubble
@@ -123,6 +99,7 @@ function MessageList() {
                             isSent={isSent}
                             showAvatar={showAvatar}
                             showSenderName={isGroup && !isSent}
+                            onAvatarClick={onAvatarClick}
                         />
                     );
                 })

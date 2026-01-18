@@ -68,7 +68,7 @@ function SideNavigation() {
     return (
         <div className={styles.wrapper}>
             <div className={styles.top}>
-                <Avatar onClick={handleShowProfile} />
+                <Avatar variant="me" onClick={handleShowProfile} />
                 {modalProfile}
                 <NavButton
                     onClick={() => setLeftTab(CHAT_TABS.MESSAGES)}

@@ -43,11 +43,15 @@ public class UserController {
         return ResponseEntity.ok(
                 userService.findUserByUsername(
                         username,
-                        userDetails.getId()   // 👈 meId
+                        userDetails.getId()
                 )
         );
     }
 
+    @GetMapping("/{id}")
+    public ResponseEntity<UserResponse> getUserById(@PathVariable Integer id) {
+        return ResponseEntity.ok(userService.getUserById(id));
+    }
 
     @GetMapping("/me")
     public ResponseEntity<UserResponse> getMyProfile() {

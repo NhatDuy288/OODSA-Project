@@ -38,4 +38,6 @@ public interface IUserService {
     UserResponse getMyProfile(String username);
 
     UserResponse updateMyProfile(String username, UpdateProfileRequest request);
+
+    UserResponse getUserById(Integer id);
 }

@@ -174,4 +174,11 @@ public class UserService implements IUserService {
         User saved = userRepository.save(user);
         return new UserResponse(saved);
     }
+
+    @Override
+    public UserResponse getUserById(Integer id) {
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy người dùng"));
+        return new UserResponse(user);
+    }
 }

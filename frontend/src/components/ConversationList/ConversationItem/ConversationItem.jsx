@@ -1,12 +1,8 @@
 import styles from "./ConversationItem.module.css";
-import defaultAvatar from "../../../assets/default_avatar.jpg";
 import { AuthService } from "../../../services/auth.service";
+import Avatar from "../../Avatar/Avatar";
 
-function ConversationItem({
-    conversation,
-    active,
-    onClick,
-}) {
+function ConversationItem({ conversation, active, onClick }) {
     const currentUser = AuthService.getUser();
     const {
         name,
@@ -19,29 +15,25 @@ function ConversationItem({
         participants,
     } = conversation;
 
-    // Get display name - for 1-1 chat, get the other participant's name
     const getDisplayName = () => {
         if (name) return name;
         if (isGroup) return "Nhóm chat";
 
-        // For 1-1 chat, find the other participant
-        const otherParticipant = participants?.find(p => p.id !== currentUser?.id);
+        const otherParticipant = participants?.find((p) => p.id !== currentUser?.id);
         return otherParticipant?.fullName || otherParticipant?.username || otherParticipant?.email || "Người dùng";
     };
 
-    // Get avatar URL
     const getAvatarUrl = () => {
         if (avatarUrl) return avatarUrl;
         if (isGroup) return null;
 
-        const otherParticipant = participants?.find(p => p.id !== currentUser?.id);
+        const otherParticipant = participants?.find((p) => p.id !== currentUser?.id);
         return otherParticipant?.avatar || otherParticipant?.avatarUrl || null;
     };
 
     const displayName = getDisplayName();
     const displayAvatar = getAvatarUrl();
 
-    // Format time display
     const formatTime = (dateString) => {
         if (!dateString) return "";
         const date = new Date(dateString);
@@ -59,10 +51,9 @@ function ConversationItem({
         }
     };
 
-    // Get initials for group avatar
     const getInitials = (name) => {
         if (!name) return "G";
-        return name.split(" ").map(n => n[0]).join("").substring(0, 2).toUpperCase();
+        return name.split(" ").map((n) => n[0]).join("").substring(0, 2).toUpperCase();
     };
 
     return (
@@ -72,36 +63,28 @@ function ConversationItem({
             role="button"
             tabIndex={0}
         >
-            {/* Avatar */}
             <div className={styles.avatar}>
                 {isGroup ? (
-                    <div className={styles.groupAvatar}>
-                        {getInitials(displayName)}
-                    </div>
+                    <div className={styles.groupAvatar}>{getInitials(displayName)}</div>
                 ) : (
-                    <img
-                        src={displayAvatar || defaultAvatar}
-                        alt={displayName}
-                        className={styles.avatarImg}
-                    />
+                    <Avatar src={displayAvatar || ""} alt={displayName} size={48} />
                 )}
                 {!isGroup && isOnline && <span className={styles.onlineIndicator} />}
             </div>
 
-            {/* Content */}
             <div className={styles.content}>
                 <div className={styles.header}>
                     <span className={styles.name}>{displayName}</span>
                     <span className={styles.time}>{formatTime(lastMessageTime)}</span>
                 </div>
                 <div className={styles.footer}>
-                    <span className={`${styles.lastMessage} ${unreadCount > 0 ? styles.unreadMessage : ""}`}>
-                        {lastMessage || "Bắt đầu cuộc trò chuyện"}
-                    </span>
+          <span className={`${styles.lastMessage} ${unreadCount > 0 ? styles.unreadMessage : ""}`}>
+            {lastMessage || "Bắt đầu cuộc trò chuyện"}
+          </span>
                     {unreadCount > 0 && (
                         <span className={styles.unreadBadge}>
-                            {unreadCount > 99 ? "99+" : unreadCount}
-                        </span>
+              {unreadCount > 99 ? "99+" : unreadCount}
+            </span>
                     )}
                 </div>
             </div>

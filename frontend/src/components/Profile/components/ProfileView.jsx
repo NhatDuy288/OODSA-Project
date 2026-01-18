@@ -1,7 +1,7 @@
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faTimes, faPen, faCamera } from "@fortawesome/free-solid-svg-icons";
-import defaultAvatar from "../../../assets/default_avatar.jpg";
 import logoFull from "../../../assets/logo_full.png";
+import Avatar from "../../Avatar/Avatar";
 
 function pad2(n) {
     return String(n).padStart(2, "0");
@@ -38,6 +38,11 @@ function ProfileView({
                          onEdit,
                          onEditAvatar,
                          isSaving,
+                         title = "Profile",
+                         showSubtitle = true,
+                         showUpdateButton = true,
+                         allowEditAvatar = true,
+                         showStatus = true,
                      }) {
     const meta = statusMeta(profile?.status);
 
@@ -46,10 +51,12 @@ function ProfileView({
         onClose();
     };
 
+    const rawAvatar = avatarValue || profile?.avatar || profile?.avatarUrl || "";
+
     return (
         <div className={styles.panel}>
             <div className={styles.header}>
-                <span className={styles.title}>Profile &amp; Settings</span>
+                <span className={styles.title}>{title}</span>
                 <button className={styles.iconBtn} onClick={handleClose} disabled={isSaving}>
                     <FontAwesomeIcon icon={faTimes} />
                 </button>
@@ -62,28 +69,34 @@ function ProfileView({
                     </div>
                 ) : (
                     <div className={styles.viewLayout}>
-                        {/* Header gradient (inset, taller, balanced) */}
                         <div className={styles.profileHeader}>
                             <div className={styles.profileHeaderInner}>
                                 <div className={styles.profileLeft}>
                                     <div className={styles.avatarWrap}>
-                                        <img
-                                            className={styles.avatar}
-                                            src={avatarValue || profile?.avatar || defaultAvatar}
+                                        <Avatar
+                                            src={rawAvatar}
                                             alt="avatar"
+                                            size="100%"
+                                            className={styles.avatar}
+                                            imgClassName={styles.avatar}
                                         />
-                                        <button
-                                            className={styles.avatarEditBtn}
-                                            onClick={onEditAvatar}
-                                            title="Đổi ảnh"
-                                            disabled={isSaving}
-                                        >
-                                            <FontAwesomeIcon icon={faCamera} />
-                                        </button>
+
+                                        {allowEditAvatar && (
+                                            <button
+                                                className={styles.avatarEditBtn}
+                                                onClick={onEditAvatar}
+                                                title="Đổi ảnh"
+                                                disabled={isSaving}
+                                            >
+                                                <FontAwesomeIcon icon={faCamera} />
+                                            </button>
+                                        )}
                                     </div>
 
                                     <div className={styles.profileText}>
-                                        <div className={styles.displayName}>{profile?.fullName || "Tên user"}</div>
+                                        <div className={styles.displayName}>
+                                            {profile?.fullName || "Tên user"}
+                                        </div>
                                         <div className={styles.subLine}>
                                             <span className={styles.subStrong}>{profile?.username || "-"}</span>
                                         </div>
@@ -91,27 +104,30 @@ function ProfileView({
                                 </div>
 
                                 <div className={styles.profileRight}>
-                  <span
-                      className={`${styles.statusBadge} ${
-                          meta.type === "online" ? styles.statusOnline : styles.statusOffline
-                      }`}
-                  >
-                    <span className={styles.statusDot} />
-                      {meta.label}
-                  </span>
+                                    {showStatus && (
+                                        <span
+                                            className={`${styles.statusBadge} ${
+                                                meta.type === "online" ? styles.statusOnline : styles.statusOffline
+                                            }`}
+                                        >
+                      <span className={styles.statusDot} />
+                                            {meta.label}
+                    </span>
+                                    )}
                                 </div>
                             </div>
                         </div>
 
-                        {/* Section (match edit style: logo + title + subtitle) */}
                         <div className={styles.sectionCard}>
                             <div className={styles.sectionHead}>
                                 <img className={styles.schoolLogo} src={logoFull} alt="logo" />
                                 <div className={styles.sectionHeadText}>
                                     <div className={styles.sectionHeadTitle}>Thông tin cá nhân</div>
-                                    <div className={styles.sectionHeadSub}>
-                                        Cập nhật chi tiết cá nhân và thông tin hồ sơ của bạn
-                                    </div>
+                                    {showSubtitle && (
+                                        <div className={styles.sectionHeadSub}>
+                                            Cập nhật chi tiết cá nhân và thông tin hồ sơ của bạn
+                                        </div>
+                                    )}
                                 </div>
                             </div>
 
@@ -135,11 +151,12 @@ function ProfileView({
                             </div>
                         </div>
 
-                        {/* Button shorter (~half), nicer font */}
-                        <button className={styles.updateBtn} onClick={onEdit} disabled={isSaving}>
-                            <FontAwesomeIcon icon={faPen} />
-                            <span>{isSaving ? "Đang xử lý..." : "Cập nhật"}</span>
-                        </button>
+                        {showUpdateButton && (
+                            <button className={styles.updateBtn} onClick={onEdit} disabled={isSaving}>
+                                <FontAwesomeIcon icon={faPen} />
+                                <span>{isSaving ? "Đang xử lý..." : "Cập nhật"}</span>
+                            </button>
+                        )}
                     </div>
                 )}
             </div>

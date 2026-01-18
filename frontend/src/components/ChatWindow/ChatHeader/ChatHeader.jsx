@@ -2,81 +2,77 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faPhone, faVideo, faEllipsisV } from "@fortawesome/free-solid-svg-icons";
 import { useChat } from "../../../contexts/ChatContext";
 import { AuthService } from "../../../services/auth.service";
-import defaultAvatar from "../../../assets/default_avatar.jpg";
+import Avatar from "../../Avatar/Avatar";
 import styles from "./ChatHeader.module.css";
 
-function ChatHeader({ onInfoClick }) {
+function ChatHeader({ onInfoClick, onAvatarClick }) {
     const { currentConversation } = useChat();
     const currentUser = AuthService.getUser();
 
     if (!currentConversation) return null;
 
-    // Get display name - prefer name, otherwise get from participants
-    const getDisplayName = () => {
-        if (currentConversation.name) return currentConversation.name;
-        if (currentConversation.isGroup) return "Nhóm chat";
+    const participants = currentConversation.participants || [];
+    const otherParticipant = currentConversation.isGroup
+        ? null
+        : participants.find((p) => Number(p.id) !== Number(currentUser?.id));
 
-        // For 1-1 chat, get the other participant's name
-        const participants = currentConversation.participants || [];
-        const otherParticipant = participants.find(p => p.id !== currentUser?.id);
-        return otherParticipant?.fullName || otherParticipant?.username || otherParticipant?.email || "Người dùng";
-    };
+    const displayName =
+        currentConversation.name ||
+        (currentConversation.isGroup
+            ? "Nhóm chat"
+            : (otherParticipant?.fullName ||
+                otherParticipant?.username ||
+                otherParticipant?.email ||
+                "Người dùng"));
 
-    // Get avatar URL
-    const getAvatarUrl = () => {
-        if (currentConversation.avatarUrl) return currentConversation.avatarUrl;
-        if (currentConversation.isGroup) return null;
+    const rawAvatar =
+        currentConversation.avatarUrl ||
+        (currentConversation.isGroup
+            ? ""
+            : (otherParticipant?.avatar || otherParticipant?.avatarUrl || ""));
 
-        const participants = currentConversation.participants || [];
-        const otherParticipant = participants.find(p => p.id !== currentUser?.id);
-        return otherParticipant?.avatar || otherParticipant?.avatarUrl || null;
-    };
-
-    const displayName = getDisplayName();
-    const displayAvatar = getAvatarUrl();
     const { isGroup, isOnline, participantCount } = currentConversation;
 
-    // Get initials for group avatar
     const getInitials = (name) => {
         if (!name) return "G";
-        return name.split(" ").map((n) => n[0]).join("").substring(0, 2).toUpperCase();
+        return name
+            .split(" ")
+            .map((n) => n[0])
+            .join("")
+            .substring(0, 2)
+            .toUpperCase();
     };
 
-    // Get status text
-    const getStatusText = () => {
-        if (isGroup) {
-            return `${participantCount || 0} thành viên`;
-        }
-        return isOnline ? "Đang hoạt động" : "Offline";
-    };
+    const statusText = isGroup
+        ? `${participantCount || 0} thành viên`
+        : (isOnline ? "Đang hoạt động" : "Offline");
 
     return (
         <div className={styles.wrapper}>
-            {/* User/Group Info */}
             <div className={styles.userInfo}>
-                <div className={styles.avatar}>
+                <div
+                    className={styles.avatar}
+                    onClick={() => {
+                        if (!isGroup && otherParticipant) onAvatarClick?.(otherParticipant);
+                    }}
+                    style={{ cursor: !isGroup && otherParticipant && onAvatarClick ? "pointer" : "default" }}
+                >
                     {isGroup ? (
                         <div className={styles.groupAvatar}>{getInitials(displayName)}</div>
                     ) : (
-                        <img
-                            src={displayAvatar || defaultAvatar}
-                            alt={displayName}
-                            className={styles.avatarImg}
-                        />
+                        <Avatar src={rawAvatar} alt={displayName} size={44} />
                     )}
                     {!isGroup && isOnline && <span className={styles.onlineIndicator} />}
                 </div>
+
                 <div className={styles.details}>
                     <span className={styles.name}>{displayName}</span>
-                    <span
-                        className={`${styles.status} ${isOnline && !isGroup ? styles.statusOnline : ""}`}
-                    >
-                        {getStatusText()}
-                    </span>
+                    <span className={`${styles.status} ${isOnline && !isGroup ? styles.statusOnline : ""}`}>
+            {statusText}
+          </span>
                 </div>
             </div>
 
-            {/* Actions */}
             <div className={styles.actions}>
                 <button className={styles.actionBtn} title="Gọi thoại">
                     <FontAwesomeIcon icon={faPhone} />
@@ -84,11 +80,7 @@ function ChatHeader({ onInfoClick }) {
                 <button className={styles.actionBtn} title="Gọi video">
                     <FontAwesomeIcon icon={faVideo} />
                 </button>
-                <button
-                    className={styles.actionBtn}
-                    title="Thông tin"
-                    onClick={onInfoClick}
-                >
+                <button className={styles.actionBtn} title="Thông tin" onClick={onInfoClick}>
                     <FontAwesomeIcon icon={faEllipsisV} />
                 </button>
             </div>
@@ -97,4 +89,3 @@ function ChatHeader({ onInfoClick }) {
 }
 
 export default ChatHeader;
-

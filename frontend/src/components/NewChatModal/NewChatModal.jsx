@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faTimes, faSearch, faUserPlus } from "@fortawesome/free-solid-svg-icons";
 import { useChat } from "../../contexts/ChatContext";
-import defaultAvatar from "../../assets/default_avatar.jpg";
+import Avatar from "../Avatar/Avatar";
 import styles from "./NewChatModal.module.css";
 
 function NewChatModal({ isOpen, onClose }) {
@@ -12,14 +12,12 @@ function NewChatModal({ isOpen, onClose }) {
     const [isLoading, setIsLoading] = useState(false);
     const { setCurrentConversation, loadConversations } = useChat();
 
-    // Load users on mount
     useEffect(() => {
         if (isOpen) {
             loadUsers();
         }
     }, [isOpen]);
 
-    // Filter users based on search query
     useEffect(() => {
         if (searchQuery.trim()) {
             const filtered = users.filter(
@@ -37,11 +35,6 @@ function NewChatModal({ isOpen, onClose }) {
     const loadUsers = async () => {
         setIsLoading(true);
         try {
-            // TODO: Replace with API call when backend is ready
-            // const response = await userApi.searchUsers();
-            // setUsers(response.data);
-
-            // Mock data for testing
             setUsers([
                 {
                     id: 101,
@@ -92,10 +85,6 @@ function NewChatModal({ isOpen, onClose }) {
     };
 
     const handleStartChat = async (user) => {
-        // TODO: Create or get existing conversation with this user
-        // const response = await conversationApi.createConversation(user.id);
-
-        // For now, create a mock conversation
         const newConversation = {
             id: Date.now(),
             name: user.fullName,
@@ -120,12 +109,8 @@ function NewChatModal({ isOpen, onClose }) {
     };
 
     return (
-        <div
-            className={`${styles.overlay} ${isOpen ? styles.overlayVisible : ""}`}
-            onClick={handleClose}
-        >
+        <div className={`${styles.overlay} ${isOpen ? styles.overlayVisible : ""}`} onClick={handleClose}>
             <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
-                {/* Header */}
                 <div className={styles.header}>
                     <span className={styles.title}>Cuộc trò chuyện mới</span>
                     <button className={styles.closeBtn} onClick={handleClose}>
@@ -133,9 +118,7 @@ function NewChatModal({ isOpen, onClose }) {
                     </button>
                 </div>
 
-                {/* Content */}
                 <div className={styles.content}>
-                    {/* Search Box */}
                     <div className={styles.searchBox}>
                         <FontAwesomeIcon icon={faSearch} className={styles.searchIcon} />
                         <input
@@ -148,7 +131,6 @@ function NewChatModal({ isOpen, onClose }) {
                         />
                     </div>
 
-                    {/* User List */}
                     {isLoading ? (
                         <div className={styles.loading}>
                             <div className={styles.spinner} />
@@ -163,11 +145,7 @@ function NewChatModal({ isOpen, onClose }) {
                                         className={styles.userItem}
                                         onClick={() => handleStartChat(user)}
                                     >
-                                        <img
-                                            src={user.avatarUrl || defaultAvatar}
-                                            alt={user.fullName}
-                                            className={styles.userAvatar}
-                                        />
+                                        <Avatar src={user.avatarUrl || ""} alt={user.fullName} size={44} />
                                         <div className={styles.userInfo}>
                                             <div className={styles.userName}>{user.fullName}</div>
                                             <div className={styles.userEmail}>{user.email}</div>
@@ -181,9 +159,7 @@ function NewChatModal({ isOpen, onClose }) {
                         <div className={styles.emptyState}>
                             <FontAwesomeIcon icon={faUserPlus} className={styles.emptyIcon} />
                             <p className={styles.emptyText}>
-                                {searchQuery
-                                    ? "Không tìm thấy người dùng"
-                                    : "Nhập tên hoặc email để tìm kiếm"}
+                                {searchQuery ? "Không tìm thấy người dùng" : "Nhập tên hoặc email để tìm kiếm"}
                             </p>
                         </div>
                     )}
