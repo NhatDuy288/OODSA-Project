@@ -151,7 +151,7 @@ function ProfileModal({ isOpen, onClose }) {
             const payload = {
                 fullName: form.fullName || null,
                 email: form.email || null,
-                avatar: form.avatar ? form.avatar : null,
+                avatar: form.avatar === "" ? "" : (form.avatar || null),
                 gender: form.gender || null,
                 dateOfBirth: buildLocalDateTimeFromParts(form.dob),
             };
@@ -184,7 +184,7 @@ function ProfileModal({ isOpen, onClose }) {
         setError("");
         try {
             const updated = await updateMyProfile({
-                avatar: avatarValue ? avatarValue : null,
+                avatar: avatarValue === "" ? "" : (avatarValue || null),
             });
 
             AuthService.setUser(updated);
@@ -202,7 +202,6 @@ function ProfileModal({ isOpen, onClose }) {
             setForm(nextForm);
             setInitialForm(nextForm);
 
-            // sau khi lưu avatar -> quay về view
             setMode("view");
         } catch {
             setError("Cập nhật ảnh thất bại. Thử lại.");
@@ -235,7 +234,7 @@ function ProfileModal({ isOpen, onClose }) {
                         avatarValue={form.avatar}
                         onClose={handleClose}
                         onEdit={goEdit}
-                        onEditAvatar={goAvatar}   // ✅ mở panel avatar bằng slider
+                        onEditAvatar={goAvatar}
                         isSaving={isSaving}
                     />
 
@@ -257,9 +256,9 @@ function ProfileModal({ isOpen, onClose }) {
 
                     <AvatarEditorModal
                         styles={styles}
-                        isOpen={mode === "avatar"} // ✅ panel thứ 3
-                        onClose={handleClose}      // nút X đóng toàn modal
-                        onBack={goBackFromAvatar}  // nút back trượt về view
+                        isOpen={mode === "avatar"}
+                        onClose={handleClose}
+                        onBack={goBackFromAvatar}
                         onApply={saveAvatarOnly}
                         initialSrc={form.avatar || profile?.avatar || ""}
                         isSaving={isSaving}

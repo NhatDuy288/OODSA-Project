@@ -154,7 +154,6 @@ function AvatarEditorModal({
 
         ctx.drawImage(img, x, y, drawW, drawH);
 
-        // Mask preview
         ctx.save();
         ctx.fillStyle = "rgba(0,0,0,0.35)";
         ctx.beginPath();
@@ -163,7 +162,6 @@ function AvatarEditorModal({
         ctx.fill("evenodd");
         ctx.restore();
 
-        // Border preview
         ctx.save();
         ctx.strokeStyle = "rgba(255,255,255,0.9)";
         ctx.lineWidth = 2;
@@ -173,7 +171,6 @@ function AvatarEditorModal({
         ctx.restore();
     };
 
-    // xuất PNG tròn, nền ngoài trong suốt
     const exportCircleAvatar = (img, z, off) => {
         if (!img) return "";
 
@@ -245,8 +242,8 @@ function AvatarEditorModal({
         if (canvas && e.pointerId != null) {
             try {
                 canvas.setPointerCapture(e.pointerId);
-            } catch {
-                // ignore
+            } catch (e2) {
+                void e2;
             }
         }
     };
@@ -279,14 +276,20 @@ function AvatarEditorModal({
             return;
         }
 
+        const previewSize = canvasRef.current?.width || 300;
+        const outSize = 512;
+        const ratio = outSize / previewSize;
+
         const safeOff = clampOffsetToCircle({
             img: imgObj,
             zoom,
             offset,
-            canvasSize: canvasRef.current?.width || 300,
+            canvasSize: previewSize,
         });
 
-        const out = exportCircleAvatar(imgObj, zoom, safeOff);
+        const scaledOff = { x: safeOff.x * ratio, y: safeOff.y * ratio };
+
+        const out = exportCircleAvatar(imgObj, zoom, scaledOff);
         onApply(out);
     };
 
@@ -294,7 +297,6 @@ function AvatarEditorModal({
         onApply("");
     };
 
-    // Panel vẫn phải render để slider có 3 khung -> nhưng content ẩn khi chưa open
     return (
         <div className={styles.panel} style={{ pointerEvents: isOpen ? "auto" : "none" }}>
             <div className={styles.header}>
