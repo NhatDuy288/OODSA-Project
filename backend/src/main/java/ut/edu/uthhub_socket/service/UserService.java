@@ -100,16 +100,14 @@ public class UserService implements IUserService {
 
         Integer requestId = null;
 
-        Optional<Friend> relation =
-                friendRepository.findRelation(meId, target.getId());
+        Optional<Friend> relation = friendRepository.findRelation(meId, target.getId());
 
         if (relation.isPresent()) {
             Friend f = relation.get();
 
             if (f.getStatus() == FriendshipStatus.ACCEPTED) {
                 friendStatus = "FRIEND";
-            }
-            else if (f.getStatus() == FriendshipStatus.PENDING) {
+            } else if (f.getStatus() == FriendshipStatus.PENDING) {
                 requestId = f.getId();
                 if (f.getUser().getId().equals(meId)) {
                     friendStatus = "PENDING_SENT";
@@ -127,9 +125,9 @@ public class UserService implements IUserService {
                 target.getDateOfBirth(),
                 target.getAvatar(),
                 target.getGender() != null ? target.getGender().name() : null,
+                target.getStatus() != null ? target.getStatus().name() : null,
                 requestId,
-                friendStatus
-        );
+                friendStatus);
     }
 
     @Override

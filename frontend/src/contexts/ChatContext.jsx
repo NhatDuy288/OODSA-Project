@@ -50,11 +50,37 @@ export const ChatProvider = ({ children }) => {
       console.log("[ChatContext] loadConversations - calling API...");
       const data = await conversationApi.getConversations();
       console.log("[ChatContext] loadConversations - API returned:", data);
-      setConversations(data || []);
+
+      // Process data to add isOnline flag
+      const processedData = data?.map(conv => {
+        let isOnline = false;
+        let participants = conv.participants || [];
+
+        // Process participants to add isOnline flag from status string
+        participants = participants.map(p => ({
+          ...p,
+          isOnline: p.status === 'ONLINE'
+        }));
+
+        if (!conv.isGroup) {
+          const other = participants.find(p => p.username !== currentUser?.username);
+          if (other && other.isOnline) {
+            isOnline = true;
+          }
+        }
+
+        return {
+          ...conv,
+          isOnline,
+          participants
+        };
+      });
+
+      setConversations(processedData || []);
     } catch (error) {
       console.error("[ChatContext] Error loading conversations:", error);
     }
-  }, []);
+  }, [currentUser?.username]);
 
   // Load messages for a conversation
   const loadMessages = useCallback(async (conversationId) => {
@@ -251,7 +277,7 @@ export const ChatProvider = ({ children }) => {
           name: user.fullName || user.username,
           avatarUrl: user.avatar || user.avatarUrl,
           isGroup: false,
-          isOnline: false,
+          isOnline: user.status === 'ONLINE',
           lastMessage: "",
           lastMessageTime: new Date().toISOString(),
         };
@@ -406,6 +432,106 @@ export const ChatProvider = ({ children }) => {
       // hasInitialized stays true to prevent reconnect on StrictMode double-invoke
     };
   }, [currentUser?.id]); // Use primitive ID, not object reference
+
+  // Manage status subscriptions based on loaded conversations
+  // We use a separate effect/logic to ensure we subscribe to all participants
+  const subscribedUsersRef = useRef(new Set());
+
+  const subscribeToUserStatus = useCallback((username) => {
+    if (!username || subscribedUsersRef.current.has(username)) return;
+
+    // Don't subscribe to self
+    if (currentUser?.username === username) return;
+
+    console.log(`[ChatContext] Subscribing to status for: ${username}`);
+    subscribedUsersRef.current.add(username);
+
+    WebSocketService.subscribe(`/topic/active/${username}`, (statusMsg) => {
+      console.log(`[ChatContext] Status update for ${username}:`, statusMsg);
+      const isOnline = statusMsg.status === 'ONLINE';
+
+      // Update conversations list
+      setConversations(prevConvs => {
+        return prevConvs.map(conv => {
+          // Update participants inside conversation
+          let participantsChanged = false;
+          const updatedParticipants = conv.participants?.map(p => {
+            if (p.username === username && (p.isOnline !== isOnline)) {
+              participantsChanged = true;
+              return { ...p, isOnline: isOnline, status: statusMsg.status };
+            }
+            return p;
+          });
+
+          // For 1-1 chats, update top-level isOnline
+          let isOnlineChanged = false;
+          let newConvIsOnline = conv.isOnline;
+
+          if (!conv.isGroup) {
+            const other = updatedParticipants?.find(p => p.username === username);
+            if (other && conv.isOnline !== isOnline) {
+              newConvIsOnline = isOnline;
+              isOnlineChanged = true;
+            }
+          }
+
+          if (participantsChanged || isOnlineChanged) {
+            return {
+              ...conv,
+              participants: updatedParticipants,
+              isOnline: newConvIsOnline
+            };
+          }
+          return conv;
+        });
+      });
+
+      // Update current conversation if needed
+      setCurrentConversation(prev => {
+        if (!prev) return prev;
+
+        let shouldUpdate = false;
+        const newParticipants = prev.participants?.map(p => {
+          if (p.username === username && (p.isOnline !== isOnline)) {
+            shouldUpdate = true;
+            return { ...p, isOnline: isOnline, status: statusMsg.status };
+          }
+          return p;
+        });
+
+        // For 1-1 chats, update top-level isOnline
+        let newIsOnline = prev.isOnline;
+        if (!prev.isGroup) {
+          const other = newParticipants?.find(p => p.username === username);
+          if (other && prev.isOnline !== isOnline) {
+            newIsOnline = isOnline;
+            shouldUpdate = true;
+          }
+        }
+
+        if (shouldUpdate) {
+          return {
+            ...prev,
+            participants: newParticipants,
+            isOnline: newIsOnline
+          };
+        }
+        return prev;
+      });
+
+    });
+  }, [currentUser?.username]);
+
+  // Effect to subscribe to status for all users in conversations
+  useEffect(() => {
+    if (!conversations.length) return;
+
+    conversations.forEach(conv => {
+      conv.participants?.forEach(p => {
+        if (p.username) subscribeToUserStatus(p.username);
+      });
+    });
+  }, [conversations, subscribeToUserStatus]);
 
   return (
     <ChatContext.Provider

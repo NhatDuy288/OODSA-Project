@@ -17,6 +17,7 @@ public class UserSearchResponse {
     private LocalDateTime dateOfBirth;
     private String avatar;
     private String gender;
+    private String status;
     private Integer requestId;
     private String friendStatus;
 }
