@@ -15,6 +15,28 @@ function MessageBubble({ message, isSent, showAvatar, showSenderName, onAvatarCl
     const avatarRaw = sender?.avatarUrl || sender?.avatar || "";
     const handleAvatarClick = onAvatarClick ? () => onAvatarClick(message) : undefined;
 
+    const isEmojiOnly = (text) => {
+        if (!text) return false;
+
+        const t = String(text).trim();
+        if (!t) return false;
+
+        const noSpaces = t.replace(/\s+/g, "");
+
+        if (/[A-Za-z0-9]/.test(noSpaces)) return false;
+
+        if (/[.,/#!$%^&*;:{}=\-_`~()<>?@"'\\[\]|]/.test(noSpaces)) return false;
+
+        for (const ch of noSpaces) {
+            const cp = ch.codePointAt(0);
+            if (cp <= 127) {
+                return false;
+            }
+        }
+
+        return true;
+    };
+
     return (
         <div className={`${styles.wrapper} ${isSent ? styles.sent : styles.received}`}>
             {!isSent && showAvatar && (
@@ -31,7 +53,9 @@ function MessageBubble({ message, isSent, showAvatar, showSenderName, onAvatarCl
             <div className={styles.content}>
                 {!isSent && showSenderName && <span className={styles.senderName}>{sender?.fullName}</span>}
 
-                <div className={styles.bubble}>{content}</div>
+                <div className={`${styles.bubble} ${isEmojiOnly(content) ? styles.emojiOnly : ""}`}>
+                    {content}
+                </div>
 
                 <div className={styles.messageInfo}>
                     <span className={styles.time}>{formatTime(createdAt)}</span>

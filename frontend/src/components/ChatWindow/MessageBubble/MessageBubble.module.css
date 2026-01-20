@@ -115,3 +115,7 @@
     margin-top: 2px;
     text-align: right;
 }
+.emojiOnly {
+    font-size: 42px;
+    line-height: 1.1;
+}
