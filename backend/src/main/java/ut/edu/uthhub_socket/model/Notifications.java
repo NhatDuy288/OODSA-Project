@@ -22,7 +22,9 @@ public class Notifications {
     @JoinColumn(name = "sender_id")
     private User sender;
     @Enumerated(EnumType.STRING)
+    @Column(name = "style", length = 30, columnDefinition = "VARCHAR(30)")
     private StyleNotifications style;
+
 
     private String content;
 

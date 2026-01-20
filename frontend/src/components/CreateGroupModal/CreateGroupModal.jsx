@@ -13,7 +13,10 @@ function CreateGroupModal({ isOpen, onClose }) {
     const [users, setUsers] = useState([]);
     const [filteredUsers, setFilteredUsers] = useState([]);
     const [selectedMembers, setSelectedMembers] = useState([]);
-    const { selectConversation, loadConversations } = useChat();
+    const [submitting, setSubmitting] = useState(false);
+    const [errorMsg, setErrorMsg] = useState("");
+
+    const { selectConversation, loadConversations, setConversations } = useChat();
 
     useEffect(() => {
         if (isOpen) {
@@ -45,7 +48,6 @@ function CreateGroupModal({ isOpen, onClose }) {
                     id: f.userId,
                     fullName: f.fullName,
                     email: f.username || "",
-                    // NOTE: giữ RAW, Avatar sẽ tự resolve
                     avatarUrl: f.avatar || f.avatarUrl || null,
                 }));
 
@@ -69,9 +71,13 @@ function CreateGroupModal({ isOpen, onClose }) {
     };
 
     const handleCreateGroup = async () => {
+        if (submitting) return;
         if (!groupName.trim() || selectedMembers.length < 2) return;
 
         try {
+            setErrorMsg("");
+            setSubmitting(true);
+
             const payload = {
                 name: groupName.trim(),
                 memberIds: selectedMembers.map((m) => m.id),
@@ -80,11 +86,32 @@ function CreateGroupModal({ isOpen, onClose }) {
 
             const created = await conversationApi.createGroup(payload);
 
-            await loadConversations();
+            // Optimistic update so UI reacts immediately even if loadConversations is slow
+            if (created?.id) {
+                setConversations?.((prev) => {
+                    const list = Array.isArray(prev) ? prev : [];
+                    const exists = list.some((c) => c?.id === created.id);
+                    return exists
+                        ? list.map((c) => (c?.id === created.id ? created : c))
+                        : [created, ...list];
+                });
+            }
+
             selectConversation(created);
             handleClose();
+
+            // Sync from server (don’t block UI)
+            loadConversations?.();
         } catch (e) {
             console.error("Create group failed:", e);
+            setErrorMsg(
+                e?.response?.data?.message ||
+                e?.response?.data ||
+                e?.message ||
+                "Tạo nhóm thất bại"
+            );
+        } finally {
+            setSubmitting(false);
         }
     };
 
@@ -93,6 +120,8 @@ function CreateGroupModal({ isOpen, onClose }) {
         setGroupName("");
         setSearchQuery("");
         setSelectedMembers([]);
+        setErrorMsg("");
+        setSubmitting(false);
     };
 
     const getInitials = (name) => {
@@ -205,10 +234,23 @@ function CreateGroupModal({ isOpen, onClose }) {
                     <button className={styles.cancelBtn} onClick={handleClose}>
                         Hủy
                     </button>
-                    <button className={styles.createBtn} onClick={handleCreateGroup} disabled={!isValid}>
-                        Tạo nhóm {selectedMembers.length >= 2 && `(${selectedMembers.length + 1})`}
+                    <button
+                        className={styles.createBtn}
+                        onClick={handleCreateGroup}
+                        disabled={!isValid || submitting}
+                        title={!isValid ? "Nhập tên nhóm và chọn ít nhất 2 thành viên" : ""}
+                    >
+                        {submitting
+                            ? "Đang tạo..."
+                            : `Tạo nhóm ${selectedMembers.length >= 2 ? `(${selectedMembers.length + 1})` : ""}`}
                     </button>
                 </div>
+
+                {errorMsg && (
+                    <div style={{ padding: "0 24px 16px", color: "#ff6b6b", fontSize: "0.9rem" }}>
+                        {errorMsg}
+                    </div>
+                )}
             </div>
         </div>
     );
