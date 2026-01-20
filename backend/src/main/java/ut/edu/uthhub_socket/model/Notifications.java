@@ -26,6 +26,15 @@ public class Notifications {
 
     private String content;
 
+    @Column(name = "conversation_id")
+    private Long conversationId;
+
+    @Column(name = "message_id")
+    private Long messageId;
+
+    private Boolean silent = false;
+
+
     private Boolean isRead = false;
     private LocalDateTime createdAt;
     @PrePersist

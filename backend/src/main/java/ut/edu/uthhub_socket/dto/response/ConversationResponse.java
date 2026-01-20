@@ -15,19 +15,27 @@ public class ConversationResponse {
     private LocalDateTime lastMessageTime;
     private Integer participantCount;
 
+    // admin id
+    private Integer adminId;
+
+    // mute theo user hiện tại
+    private Boolean muted;
+
     private Set<UserResponse> participants;
 
-    // optional cho panel info (đỡ phải mock)
+    // optional cho panel info
     private List<MemberInfo> members;
 
     public static class MemberInfo {
         public Integer id;
+        public String username;
         public String fullName;
         public String avatarUrl;
         public String role;
 
-        public MemberInfo(Integer id, String fullName, String avatarUrl, String role) {
+        public MemberInfo(Integer id, String username, String fullName, String avatarUrl, String role) {
             this.id = id;
+            this.username = username;
             this.fullName = fullName;
             this.avatarUrl = avatarUrl;
             this.role = role;
@@ -35,23 +43,30 @@ public class ConversationResponse {
     }
 
     public ConversationResponse(Conversation conversation) {
+        this(conversation, null);
+    }
+
+    public ConversationResponse(Conversation conversation, Boolean muted) {
         this.id = conversation.getId();
         this.name = conversation.getName();
         this.avatarUrl = conversation.getAvatarUrl();
         this.isGroup = conversation.getIsGroup();
         this.lastMessage = conversation.getLastMessage();
         this.lastMessageTime = conversation.getLastMessageAt();
-
-        setParticipants(conversation.getParticipants());
         this.participantCount = conversation.getParticipants() != null ? conversation.getParticipants().size() : 0;
 
-        // build members list (creator = Admin, còn lại = Thành viên)
         User creator = conversation.getCreatedBy();
+        this.adminId = creator != null ? creator.getId() : null;
+        this.muted = muted != null ? muted : false;
+
+        setParticipants(conversation.getParticipants());
+
+        // build members list (creator = Admin, còn lại = Thành viên)
         List<MemberInfo> m = new ArrayList<>();
         if (conversation.getParticipants() != null) {
             for (User u : conversation.getParticipants()) {
                 String role = (creator != null && creator.getId().equals(u.getId())) ? "Admin" : "Thành viên";
-                m.add(new MemberInfo(u.getId(), u.getFullName(), u.getAvatar(), role));
+                m.add(new MemberInfo(u.getId(), u.getUsername(), u.getFullName(), u.getAvatar(), role));
             }
         }
         this.members = m;
@@ -72,6 +87,8 @@ public class ConversationResponse {
     public String getLastMessage() { return lastMessage; }
     public LocalDateTime getLastMessageTime() { return lastMessageTime; }
     public Integer getParticipantCount() { return participantCount; }
+    public Integer getAdminId() { return adminId; }
+    public Boolean getMuted() { return muted; }
     public Set<UserResponse> getParticipants() { return participants; }
     public List<MemberInfo> getMembers() { return members; }
 }

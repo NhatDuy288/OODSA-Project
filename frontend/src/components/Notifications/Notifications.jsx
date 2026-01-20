@@ -9,6 +9,7 @@ import {
 import { AuthService } from "../../services/auth.service";
 import WebSocketService from "../../services/WebSocketService";
 import { getUsersById } from "../../api/users";
+import {bindTingUnlockOnce, playTingSound} from "../../utils/sound.jsx";
 
 function Notifications({ onClick }) {
     const [notifications, setNotifications] = useState([]);
@@ -59,6 +60,7 @@ function Notifications({ onClick }) {
     };
 
     useEffect(() => {
+        bindTingUnlockOnce(); // unlock audio sau khi user click/press key
         handleGetAllNotification();
         allBtnRef.current?.focus();
         // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -119,6 +121,14 @@ function Notifications({ onClick }) {
             `/topic/notifications/${currentUser.id}`,
             async (data) => {
                 const enriched = await enrichNotificationAvatar(data);
+
+                // TING: chỉ khi server không set silent
+                // và chỉ ting cho GROUP notification
+                const style = String(enriched?.style || "").toUpperCase();
+                const silent = enriched?.silent === true;
+                if (!silent && (style === "GROUP" || style === "SYSTEM" || style === "MESSAGE")) {
+                    playTingSound();
+                }
 
                 setNotifications((prev) => {
                     if (prev.some((n) => n.id === enriched.id)) return prev;

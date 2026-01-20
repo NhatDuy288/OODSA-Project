@@ -31,6 +31,10 @@ public class Message {
     @JoinColumn(name = "conversation_id")
     private Conversation conversation;
 
+    @Column(name = "is_system")
+    private Boolean isSystem = false;
+
+
     private LocalDateTime createdAt;
 
     @PrePersist

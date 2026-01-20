@@ -16,6 +16,8 @@ public class MessageResponse {
     String content;
     LocalDateTime createdAt;
     Boolean isRead;
+    Boolean isSystem;
+
     SenderInfo sender; // Nested object for frontend compatibility
 
     @Data
@@ -33,9 +35,16 @@ public class MessageResponse {
         this.content = message.getContent();
         this.createdAt = message.getCreatedAt();
         this.isRead = message.getIsRead();
-        this.sender = new SenderInfo(
-                message.getSender().getId(),
-                message.getSender().getFullName(),
-                message.getSender().getAvatar());
+        this.isSystem = message.getIsSystem();
+
+        if (message.getSender() != null) {
+            this.sender = new SenderInfo(
+                    message.getSender().getId(),
+                    message.getSender().getFullName(),
+                    message.getSender().getAvatar()
+            );
+        } else {
+            this.sender = null; // system message
+        }
     }
 }

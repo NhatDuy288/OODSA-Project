@@ -1,5 +1,7 @@
 package ut.edu.uthhub_socket.repository;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
@@ -16,4 +18,12 @@ public interface IMessageRepository extends JpaRepository<Message, Long> {
     @Modifying
     @Query("UPDATE Message m SET m.isRead = true WHERE m.conversation.id = :conversationId AND m.sender.id <> :readerId AND m.isRead = false")
     int markAsRead(@Param("conversationId") Long conversationId, @Param("readerId") Integer readerId);
+
+    // Search messages
+    Page<Message> findByConversation_IdAndContentContainingIgnoreCase(Long conversationId, String q, Pageable pageable);
+
+    // For dissolve group if needed (or cascade already handles)
+    @Modifying
+    @Query("DELETE FROM Message m WHERE m.conversation.id = :conversationId")
+    void deleteByConversationId(@Param("conversationId") Long conversationId);
 }

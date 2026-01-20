@@ -17,6 +17,10 @@ public class NotificationsResponse {
     private String content;
     private Boolean isRead ;
     private LocalDateTime createdAt;
+    private Long conversationId;
+    private Long messageId;
+    private Boolean silent;
+
     public  NotificationsResponse(Notifications notifications) {
 
         this.id = notifications.getId();

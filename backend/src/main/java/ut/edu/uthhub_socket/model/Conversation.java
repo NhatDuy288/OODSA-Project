@@ -22,7 +22,11 @@ public class Conversation {
     private Long id;
 
     @ManyToMany
-    @JoinTable(name = "conversation_users", joinColumns = @JoinColumn(name = "conversation_id"), inverseJoinColumns = @JoinColumn(name = "user_id"))
+    @JoinTable(
+            name = "conversation_users",
+            joinColumns = @JoinColumn(name = "conversation_id"),
+            inverseJoinColumns = @JoinColumn(name = "user_id")
+    )
     private Set<User> participants = new HashSet<>();
 
     @Column(name = "is_group")
@@ -40,7 +44,9 @@ public class Conversation {
 
     private String lastMessage;
     private LocalDateTime lastMessageAt;
-    @OneToMany(mappedBy = "conversation", fetch = FetchType.LAZY)
+
+    // Cascade để dissolve group xoá luôn messages
+    @OneToMany(mappedBy = "conversation", fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
     @JsonIgnore
     private List<Message> messages;
 
