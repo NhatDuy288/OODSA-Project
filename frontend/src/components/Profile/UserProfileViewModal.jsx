@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import styles from "./ProfileModal.module.css";
 import ProfileView from "./components/ProfileView";
 
-function UserProfileViewModal({ isOpen, onClose, profile: profileProp, fetchProfile }) {
+function UserProfileViewModal({ isOpen, onClose, profile: profileProp, fetchProfile, showStatus = true, }) {
     const [profile, setProfile] = useState(profileProp || null);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState("");
@@ -48,13 +48,14 @@ function UserProfileViewModal({ isOpen, onClose, profile: profileProp, fetchProf
                         profile={profile}
                         avatarValue={profile?.avatar || ""}
                         onClose={onClose}
-                        onEdit={() => {}}
-                        onEditAvatar={() => {}}
+                        onEdit={() => { }}
+                        onEditAvatar={() => { }}
                         isSaving={false}
                         title="Profile"
                         showSubtitle={false}
                         showUpdateButton={false}
                         allowEditAvatar={false}
+                        showStatus={showStatus}
                     />
                     <div className={styles.panel} />
                 </div>

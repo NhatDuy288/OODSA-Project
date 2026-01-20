@@ -11,8 +11,18 @@ import {
 } from "../../api/friends";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faMessage } from "@fortawesome/free-regular-svg-icons";
+import { AuthService } from "../../services/auth.service.jsx";
+import ProfileModal from "../Profile/ProfileModal";
+import UserProfileViewModal from "../Profile/UserProfileViewModal";
+import { searchUserByUsername } from "../../api/users";
 
 function FriendRequests() {
+    const me = AuthService.getUser();
+
+    const [isShowMyProfile, setIsShowMyProfile] = useState(false);
+    const [isShowUserProfile, setIsShowUserProfile] = useState(false);
+    const [selectedUser, setSelectedUser] = useState(null);
+
     const [received, setReceived] = useState([]);
     const [sent, setSent] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -23,6 +33,50 @@ function FriendRequests() {
     const showToast = (msg) => {
         setToast(msg);
         setTimeout(() => setToast(""), 2200);
+    };
+
+    const openProfileFromReq = (req) => {
+        // req trong friend request của bạn đã có userId, username, fullName, avatar...
+        const id = req?.userId ?? req?.id ?? null;
+        if (!id) return;
+
+        if (Number(id) === Number(me?.id)) {
+            setIsShowMyProfile(true);
+            setIsShowUserProfile(false);
+            setSelectedUser(null);
+            return;
+        }
+
+        // nhét info có sẵn vào selectedUser trước (cho modal hiện nhanh)
+        setSelectedUser({
+            id,
+            userId: id,
+            username: req?.username,
+            fullName: req?.fullName,
+            avatar: req?.avatar,
+            avatarUrl: req?.avatarUrl,
+            status: req?.status,
+        });
+
+        setIsShowUserProfile(true);
+        setIsShowMyProfile(false);
+    };
+
+    const closeProfile = () => {
+        setIsShowMyProfile(false);
+        setIsShowUserProfile(false);
+        setSelectedUser(null);
+    };
+
+    const fetchSelectedProfile = async () => {
+        const username = selectedUser?.username;
+        if (!username) return selectedUser;
+        try {
+            const data = await searchUserByUsername(username);
+            return data?.data ?? data;
+        } catch {
+            return selectedUser;
+        }
     };
 
     const normalize = (raw) => {
@@ -165,6 +219,7 @@ function FriendRequests() {
                                                 <Avatar
                                                     src={req?.avatar || req?.avatarUrl || ""}
                                                     alt={req?.fullName || req?.username || "avatar"}
+                                                    onClick={() => openProfileFromReq(req)}
                                                 />
                                             </div>
 
@@ -235,6 +290,7 @@ function FriendRequests() {
                                                 <Avatar
                                                     src={req?.avatar || req?.avatarUrl || ""}
                                                     alt={req?.fullName || req?.username || "avatar"}
+                                                    onClick={() => openProfileFromReq(req)}
                                                 />
                                             </div>
 
@@ -272,6 +328,20 @@ function FriendRequests() {
                     </div>
                 )}
             </div>
+
+            {isShowMyProfile && (
+                <ProfileModal isOpen={isShowMyProfile} onClose={closeProfile} />
+            )}
+
+            {isShowUserProfile && (
+                <UserProfileViewModal
+                    isOpen={isShowUserProfile}
+                    onClose={closeProfile}
+                    profile={selectedUser}
+                    fetchProfile={fetchSelectedProfile}
+                    showStatus={false}
+                />
+            )}
 
             {toast && <div className={styles.toast}>{toast}</div>}
         </div>

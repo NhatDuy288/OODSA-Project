@@ -138,6 +138,7 @@ function ChatWindow() {
                     onClose={closeProfile}
                     profile={selectedUser}
                     fetchProfile={fetchSelectedProfile}
+                    showStatus={true}
                 />
             )}
         </div>
