@@ -199,3 +199,37 @@
     font-size: 14px;
     z-index: 1300;
 }
+
+.moreWrap {
+    position: relative;
+}
+
+.moreMenu {
+    position: absolute;
+    right: 0;
+    top: 28px;
+    background: #fff;
+    border-radius: 8px;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+    z-index: 10;
+    min-width: 150px;
+    padding: 6px;
+}
+
+.menuItemDanger {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    padding: 8px 10px;
+    background: none;
+    border: none;
+    color: #e53935;
+    font-size: 14px;
+    cursor: pointer;
+    border-radius: 6px;
+}
+
+.menuItemDanger:hover {
+    background: #fdecea;
+}

@@ -6,12 +6,16 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faMagnifyingGlass } from "@fortawesome/free-solid-svg-icons";
 import { useChat } from "../../contexts/ChatContext";
 import { CHAT_TABS } from "../../constants/contactsMenu";
+import { faTrashCan } from "@fortawesome/free-solid-svg-icons";
+import { unfriend } from "../../api/friends";
 
 function MyFriends() {
     const [friends, setFriends] = useState([]);
     const [loading, setLoading] = useState(true);
     const [toast, setToast] = useState("");
     const { startNewConversation, setLeftTab } = useChat();
+    const [openMenuId, setOpenMenuId] = useState(null);
+
 
     const [keyword, setKeyword] = useState("");
     const [sortMode, setSortMode] = useState("AZ"); // AZ | ZA | NEWEST
@@ -46,6 +50,30 @@ function MyFriends() {
         startNewConversation(chatUser);
         setLeftTab(CHAT_TABS.MESSAGES);
     };
+
+    const handleUnfriend = async (user) => {
+        if (!user?.userId) return;
+
+        const ok = window.confirm(`Hủy kết bạn với ${user.fullName}?`);
+        if (!ok) return;
+
+        try {
+            await unfriend(user.userId);
+
+            // remove khỏi list
+            setFriends((prev) =>
+                prev.filter((f) => f.userId !== user.userId)
+            );
+
+            showToast("✅ Đã hủy kết bạn");
+        } catch (err) {
+            console.error("unfriend error:", err);
+            showToast("❌ Hủy kết bạn thất bại");
+        } finally {
+            setOpenMenuId(null);
+        }
+    };
+
 
 
     const fetchFriends = async () => {
@@ -180,7 +208,6 @@ function MyFriends() {
                     >
                         <option value="AZ">Tên (A-Z)</option>
                         <option value="ZA">Tên (Z-A)</option>
-                        <option value="NEWEST">Mới nhất</option>
                     </select>
 
                     <select
@@ -202,15 +229,6 @@ function MyFriends() {
 
                 {!loading && filtered.length > 0 && (
                     <div className={styles.list}>
-                        {filterMode !== "NEW" && newFriends.length > 0 && (
-                            <div className={styles.section}>
-                                <p className={styles.sectionTitle}>Bạn mới</p>
-
-                                {newFriends.slice(0, 5).map((u) => (
-                                    <FriendRow key={`new-${u?.userId}-${u?.requestId}`} user={u} />
-                                ))}
-                            </div>
-                        )}
 
                         {groups.map((g) => (
                             <div className={styles.section} key={g.key}>
@@ -229,6 +247,8 @@ function MyFriends() {
     );
 
     function FriendRow({ user }) {
+        const isOpen = openMenuId === user.userId;
+
         return (
             <div
                 className={styles.row}
@@ -252,13 +272,29 @@ function MyFriends() {
                     </div>
                 </div>
 
-                <button
-                    className={styles.moreBtn}
-                    title="Tùy chọn"
-                    onClick={(e) => e.stopPropagation()}
-                >
-                    …
-                </button>
+                <div className={styles.moreWrap} onClick={(e) => e.stopPropagation()}>
+                    <button
+                        className={styles.moreBtn}
+                        title="Tùy chọn"
+                        onClick={() =>
+                            setOpenMenuId(isOpen ? null : user.userId)
+                        }
+                    >
+                        …
+                    </button>
+
+                    {isOpen && (
+                        <div className={styles.moreMenu}>
+                            <button
+                                className={styles.menuItemDanger}
+                                onClick={() => handleUnfriend(user)}
+                            >
+                                <FontAwesomeIcon icon={faTrashCan} />
+                                <span>Hủy kết bạn</span>
+                            </button>
+                        </div>
+                    )}
+                </div>
             </div>
         );
     }

@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faXmark, faMagnifyingGlass } from "@fortawesome/free-solid-svg-icons";
@@ -9,6 +9,7 @@ import { useChat } from "../../contexts/ChatContext";
 import { sendFriendRequest } from "../../api/friends";
 import { searchUserByUsername } from "../../api/users";
 import { CHAT_TABS } from "../../constants/contactsMenu";
+import WebSocketService from "../../services/WebSocketService";
 import {
   cancelFriendRequest,
   acceptFriendRequest,
@@ -132,6 +133,30 @@ function AddFriend({ onClose }) {
       setIsSending(false);
     }
   };
+
+  useEffect(() => {
+    WebSocketService.connect(() => {
+      WebSocketService.subscribe(
+        "/user/queue/friend-accepted",
+        (data) => {
+          console.log("✅ Friend accepted:", data);
+
+          setFoundUser((u) => {
+            if (!u || u.id !== data.userId) return u;
+            return {
+              ...u,
+              friendStatus: "FRIEND",
+            };
+          });
+        }
+      );
+    });
+
+    return () => {
+      WebSocketService.unsubscribe("/user/queue/friend-accepted");
+    };
+  }, []);
+
 
   const isMe = foundUser && myId && Number(foundUser.id) === Number(myId);
 

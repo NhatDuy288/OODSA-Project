@@ -1,6 +1,7 @@
 package ut.edu.uthhub_socket.service;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 import ut.edu.uthhub_socket.dto.response.FriendResponse;
 import ut.edu.uthhub_socket.model.Friend;
@@ -19,6 +20,7 @@ public class FriendService implements IFriendService{
     private final IFriendRepository friendRepository;
     private final IUserRepository userRepository;
     private final INotificationsService notificationsService;
+    private final SimpMessagingTemplate messagingTemplate;
     @Override
     public void sendFriendRequestByUsername(Integer meId, String username) {
 
@@ -53,11 +55,31 @@ public class FriendService implements IFriendService{
                 .orElseThrow(() -> new RuntimeException("User không tồn tại"));
 
         Friend friend = new Friend();
-        friend.setUser(me);       // requester
-        friend.setFriend(target); // receiver
+        friend.setUser(me);
+        friend.setFriend(target);
         friend.setStatus(FriendshipStatus.PENDING);
         notificationsService.sendFriendNotification(targetId,me.getId(), StyleNotifications.FRIEND_REQUEST);
         friendRepository.save(friend);
+
+        FriendResponse socketPayload = new FriendResponse(
+                friend.getId(),
+                me.getId(),
+                me.getFullName(),
+                friend.getCreatedAt(),
+                friend.getStatus(),
+                me.getAvatar(),
+                me.getUsername(),
+                me.getGender(),
+                me.getDateOfBirth(),
+                me.getEmail()
+        );
+
+        messagingTemplate.convertAndSendToUser(
+                target.getUsername(),
+                "/queue/friend-requests",
+                socketPayload
+        );
+
     }
 
     @Override
@@ -71,6 +93,26 @@ public class FriendService implements IFriendService{
         f.setStatus(FriendshipStatus.ACCEPTED);
         friendRepository.save(f);
         notificationsService.sendFriendNotification(f.getUser().getId(),userId, StyleNotifications.FRIEND_ACCEPTED);
+        User sender = f.getUser();
+        User receiver = f.getFriend();
+
+        FriendResponse response = new FriendResponse(
+                f.getId(),
+                receiver.getId(),
+                receiver.getFullName(),
+                f.getCreatedAt(),
+                f.getStatus(),
+                receiver.getAvatar(),
+                receiver.getUsername(),
+                receiver.getGender(),
+                receiver.getDateOfBirth(),
+                receiver.getEmail()
+        );
+        messagingTemplate.convertAndSendToUser(
+                sender.getUsername(),
+                "/queue/friend-accepted",
+                response
+        );
     }
 
     @Override
@@ -167,6 +209,12 @@ public class FriendService implements IFriendService{
                 .orElseThrow(() -> new RuntimeException("Không có lời mời để thu hồi"));
 
         friendRepository.delete(f);
+
+        messagingTemplate.convertAndSendToUser(
+                f.getFriend().getUsername(),
+                "/queue/friend-canceled",
+                f.getId()
+        );
     }
 
     @Override

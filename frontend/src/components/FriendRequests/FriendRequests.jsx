@@ -17,6 +17,7 @@ import UserProfileViewModal from "../Profile/UserProfileViewModal";
 import { searchUserByUsername } from "../../api/users";
 import { useChat } from "../../contexts/ChatContext";
 import { CHAT_TABS } from "../../constants/contactsMenu";
+import WebSocketService from "../../services/WebSocketService";
 
 
 function FriendRequests() {
@@ -163,6 +164,37 @@ function FriendRequests() {
             setLoading(false);
         }
     };
+
+    useEffect(() => {
+        WebSocketService.connect(() => {
+
+            WebSocketService.subscribe(
+                "/user/queue/friend-requests",
+                (data) => {
+                    console.log("📩 Friend request realtime:", data);
+                    setReceived((prev) => {
+                        if (prev.some((x) => x.requestId === data.requestId)) return prev;
+                        return [data, ...prev];
+                    });
+                }
+            );
+
+            WebSocketService.subscribe(
+                "/user/queue/friend-canceled",
+                (requestId) => {
+                    console.log("❌ Friend request canceled:", requestId);
+                    setReceived((prev) =>
+                        prev.filter((x) => x.requestId !== requestId)
+                    );
+                }
+            );
+        });
+
+        return () => {
+            WebSocketService.unsubscribe("/user/queue/friend-requests");
+            WebSocketService.unsubscribe("/user/queue/friend-canceled");
+        };
+    }, []);
 
     useEffect(() => {
         fetchAll();
