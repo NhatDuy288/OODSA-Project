@@ -3,11 +3,16 @@ import { useChat } from "../../../contexts/ChatContext";
 import ChatWindow from "../../../components/ChatWindow/ChatWindow";
 import FriendRequests from "../../../components/FriendRequests/FriendRequests";
 import MyFriends from "../../../components/MyFriends/MyFriends";
-function ChatMain() {
+function ChatMain({ isMobileMessages, onBackToList }) {
   const { leftTab, selected } = useChat();
 
   if (leftTab === CHAT_TABS.MESSAGES) {
-    return <ChatWindow />;
+    return (
+      <ChatWindow
+        isMobileMessages={isMobileMessages}
+        onBackToList={onBackToList}
+      />
+    );
   } else {
 
     switch (selected) {

@@ -16,3 +16,15 @@
   flex: 1;
   background-color: var(--p-white);
 }
+
+@media (max-width: 900px) {
+  .conversationSidebar {
+    width: auto;
+    flex: 1;
+  }
+
+  .chatMain {
+    width: auto;
+    flex: 1;
+  }
+}

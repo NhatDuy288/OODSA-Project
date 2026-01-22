@@ -23,6 +23,8 @@ function MessageBubble({ message, isSent, showAvatar, showSenderName, onAvatarCl
 
         const noSpaces = t.replace(/\s+/g, "");
 
+        if (/[\p{L}\p{M}]/u.test(noSpaces)) return false;
+
         if (/[A-Za-z0-9]/.test(noSpaces)) return false;
 
         if (/[.,/#!$%^&*;:{}=\-_`~()<>?@"'\\[\]|]/.test(noSpaces)) return false;

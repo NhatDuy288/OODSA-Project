@@ -3,6 +3,8 @@
     flex-direction: column;
     height: 100%;
     background-color: var(--p-white);
+    min-height: 0;
+    overflow: hidden;
 }
 
 .emptyState {

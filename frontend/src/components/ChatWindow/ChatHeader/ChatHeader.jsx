@@ -1,11 +1,11 @@
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faPhone, faVideo, faEllipsisV } from "@fortawesome/free-solid-svg-icons";
+import { faArrowLeft, faPhone, faVideo, faEllipsisV } from "@fortawesome/free-solid-svg-icons";
 import { useChat } from "../../../contexts/ChatContext";
 import { AuthService } from "../../../services/auth.service";
 import Avatar from "../../Avatar/Avatar";
 import styles from "./ChatHeader.module.css";
 
-function ChatHeader({ onInfoClick, onAvatarClick }) {
+function ChatHeader({ onInfoClick, onAvatarClick, isMobileMessages, onBackToList }) {
     const { currentConversation } = useChat();
     const currentUser = AuthService.getUser();
 
@@ -50,6 +50,15 @@ function ChatHeader({ onInfoClick, onAvatarClick }) {
     return (
         <div className={styles.wrapper}>
             <div className={styles.userInfo}>
+                {isMobileMessages && onBackToList && (
+                    <button
+                        className={styles.backBtn}
+                        title="Quay lại"
+                        onClick={onBackToList}
+                    >
+                        <FontAwesomeIcon icon={faArrowLeft} />
+                    </button>
+                )}
                 <div
                     className={styles.avatar}
                     onClick={() => {

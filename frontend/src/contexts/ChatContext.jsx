@@ -62,6 +62,12 @@ export const ChatProvider = ({ children }) => {
     }
   }, []);
 
+  useEffect(() => {
+    if (!currentUser?.id) return;
+
+    loadConversations();
+  }, [currentUser?.id, loadConversations]);
+
   // Load messages for a conversation
   const loadMessages = useCallback(async (conversationId) => {
     if (!conversationId) return;

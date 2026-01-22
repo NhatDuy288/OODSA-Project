@@ -15,7 +15,7 @@ import ProfileModal from "../Profile/ProfileModal";
 import UserProfileViewModal from "../Profile/UserProfileViewModal";
 import { searchUserByUsername } from "../../api/users";
 
-function ChatWindow() {
+function ChatWindow({ isMobileMessages, onBackToList }) {
     const { currentConversation, typingUsers } = useChat();
     const [isInfoPanelOpen, setIsInfoPanelOpen] = useState(false);
 
@@ -116,6 +116,8 @@ function ChatWindow() {
             <ChatHeader
                 onInfoClick={() => setIsInfoPanelOpen(true)}
                 onAvatarClick={handleAvatarClick}
+                isMobileMessages={isMobileMessages}
+                onBackToList={onBackToList}
             />
 
             <MessageList onAvatarClick={handleAvatarClick} />
