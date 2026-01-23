@@ -24,6 +24,7 @@ export const NotificationsProvider = ({ children }) => {
     setNotifications((prev) => [data, ...prev]);
     setUnreadCount((prev) => prev + 1);
     // toast.success(data.content, { icon: <FontAwesomeIcon icon={faBell} /> });
+    console.log(data.content, "xin cháo");
     toast(<CustomToast title={data.content} />);
   }, []);
   useEffect(() => {

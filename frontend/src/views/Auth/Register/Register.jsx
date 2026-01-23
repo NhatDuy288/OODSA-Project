@@ -13,7 +13,7 @@ import bg from "../../../assets/background_uth.jpg";
 import logo from "../../../assets/logo_full.png";
 import { register } from "../../../api/auth";
 import { toast } from "react-toastify";
-
+import { useNavigate } from "react-router-dom";
 function Register() {
   const [form, setForm] = useState({
     fullName: "",
@@ -28,7 +28,7 @@ function Register() {
   const [showConfirm, setShowConfirm] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-
+  const navigate = useNavigate();
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
     setError("");
@@ -60,7 +60,7 @@ function Register() {
       setLoading(true);
       await register(registerData);
       toast.success("Đăng ký thành công!");
-      // window.location.href = "/login";
+      navigate("/login", { replace: true });
     } catch (err) {
       setError(err.response?.data || "Đăng ký thất bại");
     } finally {

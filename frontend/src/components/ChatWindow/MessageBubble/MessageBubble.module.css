@@ -1,212 +1,212 @@
 /* === ZALO-STYLE MESSAGE BUBBLES === */
 
 .wrapper {
-    display: flex;
-    align-items: flex-start;
-    margin-bottom: 2px;
-    padding: 0 16px;
+  display: flex;
+  align-items: flex-start;
+  margin-bottom: 2px;
+  padding: 0 16px;
 }
 
 /* Add spacing between different senders */
 .wrapper.firstInGroup {
-    margin-top: 8px;
+  margin-top: 8px;
 }
 
 .wrapper.lastInGroup {
-    margin-bottom: 8px;
+  margin-bottom: 8px;
 }
 
 .sent {
-    flex-direction: row-reverse;
+  flex-direction: row-reverse;
 }
 
 .received {
-    flex-direction: row;
+  flex-direction: row;
 }
 
 /* Avatar styling - aligned to top */
 .avatar {
-    flex-shrink: 0;
-    margin-top: 0;
+  flex-shrink: 0;
+  margin-top: 0;
 }
 
 .avatarImg {
-    width: 32px;
-    height: 32px;
-    border-radius: 50%;
-    object-fit: cover;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  object-fit: cover;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
 .sent .avatar {
-    display: none;
+  display: none;
 }
 
 .received .avatar {
-    margin-right: 8px;
+  margin-right: 8px;
 }
 
 /* Placeholder for avatar alignment when hidden - same width as avatar */
 .avatarPlaceholder {
-    width: 32px;
-    flex-shrink: 0;
-    margin-right: 8px;
+  width: 32px;
+  flex-shrink: 0;
+  margin-right: 8px;
 }
 
 /* Content container */
 .content {
-    max-width: 70%;
-    display: flex;
-    flex-direction: column;
+  max-width: 70%;
+  display: flex;
+  flex-direction: column;
 }
 
 .sent .content {
-    align-items: flex-end;
+  align-items: flex-end;
 }
 
 .received .content {
-    align-items: flex-start;
+  align-items: flex-start;
 }
 
 /* Sender name for group chats */
 .senderName {
-    font-size: 11px;
-    color: #65676b;
-    margin-bottom: 4px;
-    margin-left: 4px;
-    font-weight: 500;
+  font-size: 11px;
+  color: #65676b;
+  margin-bottom: 4px;
+  margin-left: 4px;
+  font-weight: 500;
 }
 
 /* Message bubble - Zalo style */
 .bubble {
-    padding: 10px 14px;
-    border-radius: 18px;
-    font-size: 15px;
-    line-height: 1.4;
-    word-wrap: break-word;
-    word-break: break-word;
-    position: relative;
-    max-width: 100%;
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  padding: 10px 14px;
+  border-radius: 18px;
+  font-size: 15px;
+  line-height: 1.4;
+  word-wrap: break-word;
+  word-break: break-word;
+  position: relative;
+  max-width: 100%;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
 }
 
 /* Sent message - Zalo blue gradient */
 .sent .bubble {
-    background: linear-gradient(135deg, #0084ff 0%, #0066cc 100%);
-    color: #ffffff;
+  background: linear-gradient(135deg, var(--p-600), var(--p-700));
+  color: #ffffff;
 }
 
 /* Received message - Light gray/white */
 .received .bubble {
-    background-color: #ffffff;
-    color: #1c1e21;
-    border: 1px solid #e4e6eb;
+  background-color: #ffffff;
+  color: #1c1e21;
+  border: 1px solid #e4e6eb;
 }
 
 /* Hover effects */
 .bubble:hover {
-    filter: brightness(0.98);
+  filter: brightness(0.98);
 }
 
 .sent .bubble:hover {
-    filter: brightness(1.05);
+  filter: brightness(1.05);
 }
 
 /* === Message grouping border-radius === */
 
 /* Single message (both first and last) */
 .sent.firstInGroup.lastInGroup .bubble {
-    border-radius: 18px;
+  border-radius: 18px;
 }
 
 .received.firstInGroup.lastInGroup .bubble {
-    border-radius: 18px;
+  border-radius: 18px;
 }
 
 /* First message in a group (more to follow) */
 .sent.firstInGroup:not(.lastInGroup) .bubble {
-    border-radius: 18px 18px 4px 18px;
+  border-radius: 18px 18px 4px 18px;
 }
 
 .received.firstInGroup:not(.lastInGroup) .bubble {
-    border-radius: 18px 18px 18px 4px;
+  border-radius: 18px 18px 18px 4px;
 }
 
 /* Middle message in a group */
 .sent.middleInGroup .bubble {
-    border-radius: 18px 4px 4px 18px;
+  border-radius: 18px 4px 4px 18px;
 }
 
 .received.middleInGroup .bubble {
-    border-radius: 4px 18px 18px 4px;
+  border-radius: 4px 18px 18px 4px;
 }
 
 /* Last message in a group (has previous) */
 .sent.lastInGroup:not(.firstInGroup) .bubble {
-    border-radius: 18px 4px 18px 18px;
+  border-radius: 18px 4px 18px 18px;
 }
 
 .received.lastInGroup:not(.firstInGroup) .bubble {
-    border-radius: 4px 18px 18px 18px;
+  border-radius: 4px 18px 18px 18px;
 }
 
 /* Message info (time + read status) */
 .messageInfo {
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    margin-top: 4px;
-    padding: 0 4px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 4px;
+  padding: 0 4px;
 }
 
 /* Time display */
 .time {
-    font-size: 11px;
-    color: #8e8e8e;
-    font-weight: 400;
+  font-size: 11px;
+  color: #8e8e8e;
+  font-weight: 400;
 }
 
 /* Read status checkmarks */
 .readStatus {
-    font-size: 11px;
-    color: #8e8e8e;
+  font-size: 11px;
+  color: #8e8e8e;
 }
 
 .readStatusRead {
-    color: #0084ff;
+  color: #0084ff;
 }
 
 /* Read avatar display */
 .readAvatar {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    margin-left: 2px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  margin-left: 2px;
 }
 
 .readAvatar img {
-    border-radius: 50%;
-    object-fit: cover;
-    width: 14px;
-    height: 14px;
+  border-radius: 50%;
+  object-fit: cover;
+  width: 14px;
+  height: 14px;
 }
 
 /* Seen text */
 .seenText {
-    font-size: 11px;
-    color: #8e8e8e;
-    margin-top: 2px;
-    text-align: right;
-    font-weight: 400;
+  font-size: 11px;
+  color: #8e8e8e;
+  margin-top: 2px;
+  text-align: right;
+  font-weight: 400;
 }
 
 /* Emoji only messages */
 .emojiOnly {
-    font-size: 42px;
-    line-height: 1.1;
-    background: transparent !important;
-    border: none !important;
-    box-shadow: none !important;
-    padding: 0 !important;
+  font-size: 42px;
+  line-height: 1.1;
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  padding: 0 !important;
 }
