@@ -1,5 +1,5 @@
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faArrowLeft, faPhone, faVideo, faEllipsisV } from "@fortawesome/free-solid-svg-icons";
+import { faArrowLeft, faEllipsisV } from "@fortawesome/free-solid-svg-icons";
 import { useChat } from "../../../contexts/ChatContext";
 import { AuthService } from "../../../services/auth.service";
 import Avatar from "../../Avatar/Avatar";
@@ -77,18 +77,13 @@ function ChatHeader({ onInfoClick, onAvatarClick, isMobileMessages, onBackToList
                 <div className={styles.details}>
                     <span className={styles.name}>{displayName}</span>
                     <span className={`${styles.status} ${isOnline && !isGroup ? styles.statusOnline : ""}`}>
-            {statusText}
-          </span>
+                        {statusText}
+                    </span>
                 </div>
             </div>
 
             <div className={styles.actions}>
-                <button className={styles.actionBtn} title="Gọi thoại">
-                    <FontAwesomeIcon icon={faPhone} />
-                </button>
-                <button className={styles.actionBtn} title="Gọi video">
-                    <FontAwesomeIcon icon={faVideo} />
-                </button>
+
                 <button className={styles.actionBtn} title="Thông tin" onClick={onInfoClick}>
                     <FontAwesomeIcon icon={faEllipsisV} />
                 </button>

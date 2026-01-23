@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faPaperPlane, faPaperclip } from "@fortawesome/free-solid-svg-icons";
+import { faPaperPlane } from "@fortawesome/free-solid-svg-icons";
 import { faFaceSmile } from "@fortawesome/free-regular-svg-icons";
 import { useChat } from "../../../contexts/ChatContext";
 import EmojiPickerPopover from "./EmojiPickerPopover";
@@ -131,10 +131,7 @@ function ChatInput() {
 
     return (
         <form className={styles.wrapper} onSubmit={handleSubmit}>
-            {/* Attach Button */}
-            <button type="button" className={styles.attachBtn} title="Đính kèm file">
-                <FontAwesomeIcon icon={faPaperclip} />
-            </button>
+
 
             <button
                 type="button"

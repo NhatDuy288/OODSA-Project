@@ -41,6 +41,8 @@ export const ChatProvider = ({ children }) => {
   const currentConversationRef = useRef(currentConversation);
   const conversationsRef = useRef(conversations);
   const hasInitialized = useRef(false);
+  // Track latest user statuses from WebSocket to handle race conditions
+  const userStatusRef = useRef({});
 
   useEffect(() => {
     currentConversationRef.current = currentConversation;
@@ -56,11 +58,40 @@ export const ChatProvider = ({ children }) => {
       console.log("[ChatContext] loadConversations - calling API...");
       const data = await conversationApi.getConversations();
       console.log("[ChatContext] loadConversations - API returned:", data);
-      setConversations(data || []);
+
+      // Map conversations and add isOnline field based on participant status
+      const conversationsWithStatus = (data || []).map((conv) => {
+        let isOnline = false;
+
+        // For 1-on-1 conversations, check if the other participant is online
+        if (!conv.isGroup && conv.participants) {
+          const otherParticipant = conv.participants.find(
+            (p) => p.username !== currentUser?.username
+          );
+
+          if (otherParticipant) {
+            // Default from API
+            isOnline = otherParticipant?.status === 'ONLINE';
+
+            // Override with latest WebSocket status if available
+            if (userStatusRef.current[otherParticipant.username]) {
+              isOnline = userStatusRef.current[otherParticipant.username] === 'ONLINE';
+              console.log(`[ChatContext] Overriding API status for ${otherParticipant.username} with WS status: ${isOnline}`);
+            }
+          }
+        }
+
+        return {
+          ...conv,
+          isOnline
+        };
+      });
+
+      setConversations(conversationsWithStatus);
     } catch (error) {
       console.error("[ChatContext] Error loading conversations:", error);
     }
-  }, []);
+  }, [currentUser?.username]);
 
   useEffect(() => {
     if (!currentUser?.id) return;
@@ -86,26 +117,26 @@ export const ChatProvider = ({ children }) => {
 
   // Subscribe to typing events for a conversation
   const subscribeToTyping = useCallback(
-      (conversationId) => {
-        if (!conversationId) return;
+    (conversationId) => {
+      if (!conversationId) return;
 
-        WebSocketService.subscribe(
-            `/topic/conversation/${conversationId}/typing`,
-            (typingData) => {
-              if (typingData.userId === currentUser?.id) return;
+      WebSocketService.subscribe(
+        `/topic/conversation/${conversationId}/typing`,
+        (typingData) => {
+          if (typingData.userId === currentUser?.id) return;
 
-              setTypingUsers((prev) => {
-                if (typingData.typing) {
-                  if (prev.some((u) => u.userId === typingData.userId)) return prev;
-                  return [...prev, typingData];
-                } else {
-                  return prev.filter((u) => u.userId !== typingData.userId);
-                }
-              });
+          setTypingUsers((prev) => {
+            if (typingData.typing) {
+              if (prev.some((u) => u.userId === typingData.userId)) return prev;
+              return [...prev, typingData];
+            } else {
+              return prev.filter((u) => u.userId !== typingData.userId);
             }
-        );
-      },
-      [currentUser?.id]
+          });
+        }
+      );
+    },
+    [currentUser?.id]
   );
 
   // Mark messages as read
@@ -122,114 +153,114 @@ export const ChatProvider = ({ children }) => {
     if (!conversationId) return;
 
     WebSocketService.subscribe(
-        `/topic/conversation/${conversationId}/read`,
-        (readReceipt) => {
-          setMessages((prev) =>
-              prev.map((msg) => ({
-                ...msg,
-                isRead: true,
-              }))
-          );
-        }
+      `/topic/conversation/${conversationId}/read`,
+      (readReceipt) => {
+        setMessages((prev) =>
+          prev.map((msg) => ({
+            ...msg,
+            isRead: true,
+          }))
+        );
+      }
     );
   }, []);
 
   // Subscribe to specific conversation topic
   const subscribeToConversation = useCallback(
-      (conversationId) => {
-        if (!conversationId) return;
+    (conversationId) => {
+      if (!conversationId) return;
 
-        WebSocketService.subscribe(`/topic/conversation/${conversationId}`, (response) => {
-          if (response.readerId) {
-            setMessages((prev) =>
-                prev.map((msg) => ({
-                  ...msg,
-                  isRead: true,
-                }))
-            );
-            return;
-          }
-
-          // Update conversation preview
-          setConversations((prev) =>
-              prev.map((conv) =>
-                  conv.id === conversationId
-                      ? {
-                        ...conv,
-                        lastMessage: response.content,
-                        lastMessageTime: response.createdAt,
-                      }
-                      : conv
-              )
+      WebSocketService.subscribe(`/topic/conversation/${conversationId}`, (response) => {
+        if (response.readerId) {
+          setMessages((prev) =>
+            prev.map((msg) => ({
+              ...msg,
+              isRead: true,
+            }))
           );
+          return;
+        }
 
-          const currentConv = currentConversationRef.current;
-          if (currentConv && currentConv.id === conversationId) {
-            if (response.conversationId && response.conversationId !== currentConv.id) return;
+        // Update conversation preview
+        setConversations((prev) =>
+          prev.map((conv) =>
+            conv.id === conversationId
+              ? {
+                ...conv,
+                lastMessage: response.content,
+                lastMessageTime: response.createdAt,
+              }
+              : conv
+          )
+        );
 
-            setMessages((prev) => {
-              if (prev.some((m) => m.id === response.id)) return prev;
-              return [...prev, response];
-            });
+        const currentConv = currentConversationRef.current;
+        if (currentConv && currentConv.id === conversationId) {
+          if (response.conversationId && response.conversationId !== currentConv.id) return;
 
-            setTypingUsers((prev) => prev.filter((u) => u.userId !== response.sender?.id));
+          setMessages((prev) => {
+            if (prev.some((m) => m.id === response.id)) return prev;
+            return [...prev, response];
+          });
 
-            if (currentUser?.id && response.sender?.id !== currentUser.id) {
-              markAsRead(conversationId);
-            }
+          setTypingUsers((prev) => prev.filter((u) => u.userId !== response.sender?.id));
+
+          if (currentUser?.id && response.sender?.id !== currentUser.id) {
+            markAsRead(conversationId);
           }
-        });
-      },
-      [currentUser, markAsRead]
+        }
+      });
+    },
+    [currentUser, markAsRead]
   );
 
   // Select a conversation
   const selectConversation = useCallback(
-      (conversation) => {
-        setCurrentConversation(conversation);
-        setTypingUsers([]);
-        setReadBy(null);
+    (conversation) => {
+      setCurrentConversation(conversation);
+      setTypingUsers([]);
+      setReadBy(null);
 
-        if (conversation && conversation.id) {
-          loadMessages(conversation.id);
-          subscribeToConversation(conversation.id);
-          subscribeToTyping(conversation.id);
-          subscribeToReadReceipts(conversation.id);
-          markAsRead(conversation.id);
-        } else {
-          setMessages([]);
-        }
-      },
-      [loadMessages, subscribeToConversation, subscribeToTyping, subscribeToReadReceipts, markAsRead]
+      if (conversation && conversation.id) {
+        loadMessages(conversation.id);
+        subscribeToConversation(conversation.id);
+        subscribeToTyping(conversation.id);
+        subscribeToReadReceipts(conversation.id);
+        markAsRead(conversation.id);
+      } else {
+        setMessages([]);
+      }
+    },
+    [loadMessages, subscribeToConversation, subscribeToTyping, subscribeToReadReceipts, markAsRead]
   );
 
   // Start a new conversation with a user
   const startNewConversation = useCallback(
-      (user) => {
-        const existing = conversations.find((c) =>
-            c.participants?.some((p) => p.id === user.id)
-        );
+    (user) => {
+      const existing = conversations.find((c) =>
+        c.participants?.some((p) => p.id === user.id)
+      );
 
-        if (existing) {
-          selectConversation(existing);
-        } else {
-          const tempConv = {
-            id: null,
-            participants: [user],
-            isTemp: true,
-            recipientId: user.id,
-            name: user.fullName || user.username,
-            avatarUrl: user.avatar || user.avatarUrl,
-            isGroup: false,
-            isOnline: false,
-            lastMessage: "",
-            lastMessageTime: new Date().toISOString(),
-          };
-          setCurrentConversation(tempConv);
-          setMessages([]);
-        }
-      },
-      [conversations, selectConversation]
+      if (existing) {
+        selectConversation(existing);
+      } else {
+        const tempConv = {
+          id: null,
+          participants: [user],
+          isTemp: true,
+          recipientId: user.id,
+          name: user.fullName || user.username,
+          avatarUrl: user.avatar || user.avatarUrl,
+          isGroup: false,
+          isOnline: false,
+          lastMessage: "",
+          lastMessageTime: new Date().toISOString(),
+        };
+        setCurrentConversation(tempConv);
+        setMessages([]);
+      }
+    },
+    [conversations, selectConversation]
   );
 
   //  Send a message
@@ -320,13 +351,13 @@ export const ChatProvider = ({ children }) => {
           const existing = prev.find((c) => c.id === convId);
           if (existing) {
             return prev.map((conv) =>
-                conv.id === convId
-                    ? {
-                      ...conv,
-                      lastMessage: message.content,
-                      lastMessageTime: message.createdAt,
-                    }
-                    : conv
+              conv.id === convId
+                ? {
+                  ...conv,
+                  lastMessage: message.content,
+                  lastMessageTime: message.createdAt,
+                }
+                : conv
             );
           } else {
             loadConversations();
@@ -339,49 +370,96 @@ export const ChatProvider = ({ children }) => {
         const latestConversation = currentConversationRef.current;
         if (latestConversation?.id === readReceipt.conversationId) {
           setMessages((prev) =>
-              prev.map((msg) => ({
-                ...msg,
-                isRead: true,
-              }))
+            prev.map((msg) => ({
+              ...msg,
+              isRead: true,
+            }))
           );
         }
       });
 
-      loadConversations();
+      // Subscribe to global user status updates (online/offline)
+      WebSocketService.subscribe(`/topic/user-status`, (statusMessage) => {
+        console.log(`%c[ChatContext] 🔔 User status update received:`, 'color: #00ff00; font-weight: bold', statusMessage);
+        console.log(`[ChatContext] Status details - username: ${statusMessage.username}, status: ${statusMessage.status}`);
+
+        // Update Ref source of truth
+        userStatusRef.current[statusMessage.username] = statusMessage.status;
+
+        // Update conversations list with new status
+        setConversations((prev) => {
+          console.log(`[ChatContext] Current conversations count: ${prev.length}`);
+
+          const updated = prev.map((conv) => {
+            // For 1-on-1 conversations, check if any participant matches
+            if (!conv.isGroup && conv.participants) {
+              const participant = conv.participants.find(p => p.username === statusMessage.username);
+              if (participant) {
+                const newStatus = statusMessage.status === 'ONLINE';
+                console.log(`%c[ChatContext] ✅ Found matching conversation ${conv.id}`, 'color: #ffff00; font-weight: bold');
+                console.log(`[ChatContext] Updating isOnline: ${conv.isOnline} → ${newStatus}`);
+                return {
+                  ...conv,
+                  isOnline: newStatus
+                };
+              }
+            }
+            return conv;
+          });
+
+          console.log(`[ChatContext] Conversations updated, triggering re-render`);
+          return updated;
+        });
+
+        // Update current conversation if it matches
+        setCurrentConversation((prev) => {
+          if (!prev || prev.isGroup) return prev;
+          const participant = prev.participants?.find(p => p.username === statusMessage.username);
+          if (participant) {
+            const newStatus = statusMessage.status === 'ONLINE';
+            console.log(`%c[ChatContext] ✅ Updating current conversation isOnline: ${prev.isOnline} → ${newStatus}`, 'color: #00ffff; font-weight: bold');
+            return {
+              ...prev,
+              isOnline: newStatus
+            };
+          }
+          return prev;
+        });
+      });
     });
 
-    return () => {};
+    return () => { };
   }, [currentUser?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
-      <ChatContext.Provider
-          value={{
-            leftTab,
-            setLeftTab,
-            selected,
-            setSelected,
-            conversations,
-            currentConversation,
-            messages,
-            isLoadingMessages,
-            currentUser,
-            typingUsers,
-            readBy,
+    <ChatContext.Provider
+      value={{
+        leftTab,
+        setLeftTab,
+        selected,
+        setSelected,
+        conversations,
+        currentConversation,
+        messages,
+        isLoadingMessages,
+        currentUser,
+        typingUsers,
+        readBy,
 
-            loadConversations,
-            loadMessages,
-            selectConversation,
-            startNewConversation,
-            sendMessage,
-            sendTypingStatus,
-            markAsRead,
-            setCurrentConversation,
-            setMessages,
-            setConversations,
-          }}
-      >
-        {children}
-      </ChatContext.Provider>
+        loadConversations,
+        loadMessages,
+        selectConversation,
+        startNewConversation,
+        sendMessage,
+        sendTypingStatus,
+        markAsRead,
+        setCurrentConversation,
+        setMessages,
+        setConversations,
+      }}
+    >
+      {children}
+    </ChatContext.Provider>
   );
 };
 

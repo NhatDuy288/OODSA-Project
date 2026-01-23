@@ -48,7 +48,23 @@ function MessageList({ onAvatarClick }) {
         return groups;
     };
 
-    const shouldShowAvatar = (grouped, index, message) => {
+    // Check if this is the FIRST message in a group from the same sender
+    const isFirstInGroup = (grouped, index, message) => {
+        // First message overall = first in group
+        if (index === 0) return true;
+
+        const prev = grouped[index - 1];
+        // After a date divider = first in group
+        if (prev.type === "date") return true;
+
+        const prevSenderId = prev.message?.sender?.id;
+        const curSenderId = message?.sender?.id;
+        // Different sender = first in group
+        return String(prevSenderId) !== String(curSenderId);
+    };
+
+    // Check if this is the LAST message in a group from the same sender
+    const isLastInGroup = (grouped, index, message) => {
         if (index === grouped.length - 1) return true;
         const next = grouped[index + 1];
         if (next.type === "date") return true;
@@ -90,7 +106,11 @@ function MessageList({ onAvatarClick }) {
 
                     const message = item.message;
                     const isSent = Number(message?.sender?.id) === Number(currentUser?.id);
-                    const showAvatar = !isSent && shouldShowAvatar(groupedMessages, index, message);
+                    const firstInGroup = isFirstInGroup(groupedMessages, index, message);
+                    const lastInGroup = isLastInGroup(groupedMessages, index, message);
+
+                    // Show avatar only on the FIRST message of a group (for received messages)
+                    const showAvatar = !isSent && firstInGroup;
 
                     // Check if this is the last sent message to show read avatar
                     const isLastSentMessage = isSent &&
@@ -104,7 +124,9 @@ function MessageList({ onAvatarClick }) {
                             message={message}
                             isSent={isSent}
                             showAvatar={showAvatar}
-                            showSenderName={isGroup && !isSent}
+                            isFirstInGroup={firstInGroup}
+                            isLastInGroup={lastInGroup}
+                            showSenderName={isGroup && !isSent && firstInGroup}
                             onAvatarClick={onAvatarClick}
                             isLastSent={isLastSentMessage}
                         />

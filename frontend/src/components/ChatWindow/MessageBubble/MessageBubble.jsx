@@ -3,7 +3,7 @@ import { faCheck, faCheckDouble } from "@fortawesome/free-solid-svg-icons";
 import Avatar from "../../Avatar/Avatar";
 import styles from "./MessageBubble.module.css";
 
-function MessageBubble({ message, isSent, showAvatar, showSenderName, onAvatarClick, isLastSent }) {
+function MessageBubble({ message, isSent, showAvatar, isFirstInGroup, isLastInGroup, showSenderName, onAvatarClick, isLastSent }) {
     const { content, createdAt, isRead, sender } = message;
 
     const formatTime = (dateString) => {
@@ -39,34 +39,53 @@ function MessageBubble({ message, isSent, showAvatar, showSenderName, onAvatarCl
         return true;
     };
 
+    // Determine wrapper classes based on position in group
+    const getWrapperClasses = () => {
+        let classes = `${styles.wrapper} ${isSent ? styles.sent : styles.received}`;
+        if (isFirstInGroup) classes += ` ${styles.firstInGroup}`;
+        if (isLastInGroup) classes += ` ${styles.lastInGroup}`;
+        if (!isFirstInGroup && !isLastInGroup) classes += ` ${styles.middleInGroup}`;
+        return classes;
+    };
+
     return (
-        <div className={`${styles.wrapper} ${isSent ? styles.sent : styles.received}`}>
-            {!isSent && showAvatar && (
-                <div className={styles.avatar}>
-                    <Avatar
-                        src={avatarRaw}
-                        alt={sender?.fullName || "User"}
-                        size={32}
-                        onClick={handleAvatarClick}
-                    />
-                </div>
+        <div className={getWrapperClasses()}>
+            {/* For received messages: show avatar on first message, placeholder on others for alignment */}
+            {!isSent && (
+                <>
+                    {showAvatar ? (
+                        <div className={styles.avatar}>
+                            <Avatar
+                                src={avatarRaw}
+                                alt={sender?.fullName || "User"}
+                                size={32}
+                                onClick={handleAvatarClick}
+                            />
+                        </div>
+                    ) : (
+                        <div className={styles.avatarPlaceholder} />
+                    )}
+                </>
             )}
 
             <div className={styles.content}>
-                {!isSent && showSenderName && <span className={styles.senderName}>{sender?.fullName}</span>}
+                {showSenderName && <span className={styles.senderName}>{sender?.fullName}</span>}
 
                 <div className={`${styles.bubble} ${isEmojiOnly(content) ? styles.emojiOnly : ""}`}>
                     {content}
                 </div>
 
-                <div className={styles.messageInfo}>
-                    <span className={styles.time}>{formatTime(createdAt)}</span>
-                    {isSent && (
-                        <span className={`${styles.readStatus} ${isRead ? styles.readStatusRead : ""}`}>
-                            <FontAwesomeIcon icon={isRead ? faCheckDouble : faCheck} />
-                        </span>
-                    )}
-                </div>
+                {/* Only show time on last message in group */}
+                {isLastInGroup && (
+                    <div className={styles.messageInfo}>
+                        <span className={styles.time}>{formatTime(createdAt)}</span>
+                        {isSent && (
+                            <span className={`${styles.readStatus} ${isRead ? styles.readStatusRead : ""}`}>
+                                <FontAwesomeIcon icon={isRead ? faCheckDouble : faCheck} />
+                            </span>
+                        )}
+                    </div>
+                )}
 
                 {/* Show "Đã xem" text below the last sent message */}
                 {isSent && isLastSent && isRead && (
