@@ -77,19 +77,25 @@ public class WebSocketEventListener {
     }
 
     private void updateStatus(String username, UserStatus status) {
-        userRepository.findByUsername(username).ifPresent(user -> {
-            user.setStatus(status);
-            userRepository.save(user);
+        var userOpt = userRepository.findByUsername(username);
 
-            logger.info("📢 Broadcasting status update: username=[{}], status=[{}] to /topic/user-status",
-                    username, status.name());
+        if (userOpt.isEmpty()) {
+            logger.warn("⚠️ User [{}] not found in database, cannot update status to [{}]", username, status.name());
+            return;
+        }
 
-            // Broadcast to global topic so all clients receive the update
-            messagingTemplate.convertAndSend(
-                    "/topic/user-status",
-                    new UserStatusMessage(username, status.name()));
+        var user = userOpt.get();
+        user.setStatus(status);
+        userRepository.save(user);
 
-            logger.info("✅ Status broadcast completed for user [{}]", username);
-        });
+        logger.info("📢 Broadcasting status update: username=[{}], status=[{}] to /topic/user-status",
+                username, status.name());
+
+        // Broadcast to global topic so all clients receive the update
+        messagingTemplate.convertAndSend(
+                "/topic/user-status",
+                new UserStatusMessage(username, status.name()));
+
+        logger.info("✅ Status broadcast completed for user [{}]", username);
     }
 }

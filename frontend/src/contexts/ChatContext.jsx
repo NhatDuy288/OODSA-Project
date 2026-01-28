@@ -17,33 +17,33 @@ const ChatContext = createContext(null);
 // Custom hook to wait for WebSocket connection - FIXED VERSION
 const useWebSocketReady = () => {
   const [isReady, setIsReady] = useState(() => WebSocketService.isConnected());
-  
+
   useEffect(() => {
     // Check immediately
     if (WebSocketService.isConnected()) {
       setIsReady(true);
       return;
     }
-    
+
     // Add listener for connection
     const handleConnected = () => {
       setIsReady(true);
     };
-    
+
     WebSocketService.addConnectionListener(handleConnected);
-    
+
     // Shorter timeout (5 seconds)
     const timeoutId = setTimeout(() => {
       console.log("[useWebSocketReady] Timeout reached, setting ready anyway");
       setIsReady(true); // Set ready anyway to avoid UI blocking
     }, 5000);
-    
+
     return () => {
       WebSocketService.removeConnectionListener(handleConnected);
       clearTimeout(timeoutId);
     };
   }, []);
-  
+
   return isReady;
 };
 
@@ -75,6 +75,7 @@ export const ChatProvider = ({ children }) => {
   const hasInitialized = useRef(false);
   const userStatusRef = useRef({});
   const subscriptionCleanups = useRef({});
+  const isSubscriptionsSetup = useRef(false); // Track if persistent subscriptions are setup
 
   // Check WebSocket connection
   const isWebSocketReady = useWebSocketReady();
@@ -91,13 +92,13 @@ export const ChatProvider = ({ children }) => {
   // Cleanup subscriptions
   const cleanupSubscriptions = useCallback((conversationId) => {
     if (!conversationId) return;
-    
+
     const topics = [
       `/topic/conversation/${conversationId}`,
       `/topic/conversation/${conversationId}/typing`,
       `/topic/conversation/${conversationId}/read`
     ];
-    
+
     topics.forEach(topic => {
       if (subscriptionCleanups.current[topic]) {
         subscriptionCleanups.current[topic]();
@@ -163,10 +164,10 @@ export const ChatProvider = ({ children }) => {
   // Mark messages as read
   const markAsRead = useCallback((conversationId) => {
     if (!conversationId) return;
-    
+
     if (!WebSocketService.isConnected()) {
       console.log("[ChatContext] WebSocket not connected, queuing markAsRead");
-      
+
       // Queue the markAsRead for when connected
       const handleConnected = () => {
         WebSocketService.send("/app/chat.markRead", { conversationId });
@@ -175,7 +176,7 @@ export const ChatProvider = ({ children }) => {
       WebSocketService.addConnectionListener(handleConnected);
       return;
     }
-    
+
     WebSocketService.send("/app/chat.markRead", { conversationId });
   }, []);
 
@@ -198,10 +199,10 @@ export const ChatProvider = ({ children }) => {
         setConversations(prev => prev.map(conv =>
           conv.id === conversationId
             ? {
-                ...conv,
-                lastMessage: response.content,
-                lastMessageTime: response.createdAt,
-              }
+              ...conv,
+              lastMessage: response.content,
+              lastMessageTime: response.createdAt,
+            }
             : conv
         ));
 
@@ -223,7 +224,7 @@ export const ChatProvider = ({ children }) => {
       },
       false // Not persistent - will be cleaned up when conversation changes
     );
-    
+
     if (msgCleanup) {
       subscriptionCleanups.current[`/topic/conversation/${conversationId}`] = msgCleanup;
     }
@@ -245,7 +246,7 @@ export const ChatProvider = ({ children }) => {
       },
       false
     );
-    
+
     if (typingCleanup) {
       subscriptionCleanups.current[`/topic/conversation/${conversationId}/typing`] = typingCleanup;
     }
@@ -258,7 +259,7 @@ export const ChatProvider = ({ children }) => {
       },
       false
     );
-    
+
     if (readCleanup) {
       subscriptionCleanups.current[`/topic/conversation/${conversationId}/read`] = readCleanup;
     }
@@ -267,7 +268,7 @@ export const ChatProvider = ({ children }) => {
   // Select conversation
   const selectConversation = useCallback((conversation) => {
     console.log(`[ChatContext] Selecting conversation:`, conversation?.id);
-    
+
     // Cleanup previous subscriptions
     if (currentConversationRef.current?.id) {
       const prevId = currentConversationRef.current.id;
@@ -280,7 +281,7 @@ export const ChatProvider = ({ children }) => {
 
     if (conversation?.id) {
       loadMessages(conversation.id);
-      
+
       if (isWebSocketReady) {
         subscribeToConversationEvents(conversation.id);
         markAsRead(conversation.id);
@@ -367,7 +368,14 @@ export const ChatProvider = ({ children }) => {
     hasInitialized.current = true;
 
     const setupSubscriptions = () => {
+      // Prevent duplicate setup
+      if (isSubscriptionsSetup.current) {
+        console.log("[ChatProvider] Subscriptions already setup, skipping...");
+        return;
+      }
+
       console.log("[ChatProvider] Setting up chat subscriptions...");
+      isSubscriptionsSetup.current = true;
 
       // Personal message queue
       const messagesCleanup = WebSocketService.subscribe(
@@ -415,10 +423,10 @@ export const ChatProvider = ({ children }) => {
               return prev.map(conv =>
                 conv.id === convId
                   ? {
-                      ...conv,
-                      lastMessage: message.content,
-                      lastMessageTime: message.createdAt,
-                    }
+                    ...conv,
+                    lastMessage: message.content,
+                    lastMessageTime: message.createdAt,
+                  }
                   : conv
               );
             } else {
@@ -429,7 +437,7 @@ export const ChatProvider = ({ children }) => {
         },
         true // Persistent subscription
       );
-      
+
       if (messagesCleanup) {
         subscriptionCleanups.current['/user/queue/messages'] = messagesCleanup;
       }
@@ -445,35 +453,41 @@ export const ChatProvider = ({ children }) => {
         },
         true
       );
-      
+
       if (readReceiptsCleanup) {
         subscriptionCleanups.current['/user/queue/read-receipts'] = readReceiptsCleanup;
       }
 
-      // User status updates
+      // User status updates - CRITICAL for realtime online/offline
+      console.log("[ChatProvider] 🔔 Subscribing to /topic/user-status...");
       const statusCleanup = WebSocketService.subscribe(
         `/topic/user-status`,
         (statusMessage) => {
-          console.log(`[ChatProvider] User status update: ${statusMessage.username} -> ${statusMessage.status}`);
-          
+          console.log(`[ChatProvider] 🟢 User status update received: ${statusMessage.username} -> ${statusMessage.status}`);
+
           userStatusRef.current[statusMessage.username] = statusMessage.status;
 
           // Update conversations
-          setConversations(prev => prev.map(conv => {
-            if (!conv.isGroup && conv.participants) {
-              const participant = conv.participants.find(p => p.username === statusMessage.username);
-              if (participant) {
-                return { ...conv, isOnline: statusMessage.status === 'ONLINE' };
+          setConversations(prev => {
+            const updated = prev.map(conv => {
+              if (!conv.isGroup && conv.participants) {
+                const participant = conv.participants.find(p => p.username === statusMessage.username);
+                if (participant) {
+                  console.log(`[ChatProvider] Updating conversation ${conv.id} isOnline to ${statusMessage.status === 'ONLINE'}`);
+                  return { ...conv, isOnline: statusMessage.status === 'ONLINE' };
+                }
               }
-            }
-            return conv;
-          }));
+              return conv;
+            });
+            return updated;
+          });
 
           // Update current conversation
           setCurrentConversation(prev => {
             if (!prev || prev.isGroup) return prev;
             const participant = prev.participants?.find(p => p.username === statusMessage.username);
             if (participant) {
+              console.log(`[ChatProvider] Updating current conversation isOnline to ${statusMessage.status === 'ONLINE'}`);
               return { ...prev, isOnline: statusMessage.status === 'ONLINE' };
             }
             return prev;
@@ -481,23 +495,36 @@ export const ChatProvider = ({ children }) => {
         },
         true
       );
-      
+
       if (statusCleanup) {
         subscriptionCleanups.current['/topic/user-status'] = statusCleanup;
+        console.log("[ChatProvider] ✅ Successfully subscribed to /topic/user-status");
+      } else {
+        console.warn("[ChatProvider] ⚠️ Failed to subscribe to /topic/user-status");
       }
-      
+
       console.log("[ChatProvider] ✅ All subscriptions active");
     };
 
     // Handle WebSocket connection
     const handleWebSocketConnected = () => {
       console.log("[ChatProvider] WebSocket connected, setting up chat subscriptions");
+
+      // Reset subscription flag to allow re-setup after reconnect
+      isSubscriptionsSetup.current = false;
+
+      // Clear old cleanup references since WebSocket reconnected
+      subscriptionCleanups.current = {};
+
       setupSubscriptions();
-      
+
       // Resubscribe to current conversation if exists
       if (currentConversationRef.current?.id) {
         subscribeToConversationEvents(currentConversationRef.current.id);
       }
+
+      // Reload conversations to get latest status from server
+      loadConversations();
     };
 
     WebSocketService.addConnectionListener(handleWebSocketConnected);
@@ -517,9 +544,9 @@ export const ChatProvider = ({ children }) => {
     // Cleanup
     return () => {
       console.log("[ChatProvider] Cleaning up subscriptions...");
-      
+
       WebSocketService.removeConnectionListener(handleWebSocketConnected);
-      
+
       // Cleanup all subscriptions
       Object.values(subscriptionCleanups.current).forEach(cleanup => {
         if (typeof cleanup === 'function') {
@@ -527,7 +554,8 @@ export const ChatProvider = ({ children }) => {
         }
       });
       subscriptionCleanups.current = {};
-      
+      isSubscriptionsSetup.current = false;
+
       hasInitialized.current = false;
     };
   }, [currentUser?.id, markAsRead, loadConversations, subscribeToConversationEvents]);
