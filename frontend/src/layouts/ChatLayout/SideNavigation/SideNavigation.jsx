@@ -1,4 +1,4 @@
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
     faMessage,
@@ -6,6 +6,7 @@ import {
     faBell,
 } from "@fortawesome/free-regular-svg-icons";
 import {
+    faHouse,
     faGear,
     faArrowRightFromBracket,
 } from "@fortawesome/free-solid-svg-icons";
@@ -27,6 +28,11 @@ function SideNavigation() {
     const [isShowSetting, setIsShowSetting] = useState(false);
     const [isShowProfile, setIsShowProfile] = useState(false);
     const navigate = useNavigate();
+    const location = useLocation();
+
+    const isSocialActive =
+        location.pathname.startsWith("/feed") ||
+        location.pathname.startsWith("/profile");
 
     const hanldLogout = () => {
         logout();
@@ -70,6 +76,12 @@ function SideNavigation() {
             <div className={styles.top}>
                 <Avatar variant="me" onClick={handleShowProfile} />
                 {modalProfile}
+
+                {/* Social / Feed */}
+                <NavButton onClick={() => navigate("/feed")} active={isSocialActive}>
+                    <FontAwesomeIcon icon={faHouse} />
+                </NavButton>
+
                 <NavButton
                     onClick={() => setLeftTab(CHAT_TABS.MESSAGES)}
                     active={leftTab === CHAT_TABS.MESSAGES}

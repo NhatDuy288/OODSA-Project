@@ -26,83 +26,84 @@ function Login() {
 
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
-    setError("");
   };
 
-  const handleSubmit = async (e) => {
+  const handleLogin = async (e) => {
     e.preventDefault();
+    setError("");
+    setLoading(true);
 
     try {
-      setLoading(true);
-      await login(form); // 👉 gọi backend /auth/login
-      navigate("/messages"); // 👉 login thành công → vào trang protected
+      await login(form.username, form.password);
+      navigate("/feed"); // đổi từ messages -> feed
     } catch (err) {
-      setError("Sai tài khoản hoặc mật khẩu");
+      setError(err?.message || "Đăng nhập thất bại");
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className={styles.wrapper}>
-      <div className={styles.loginBox}>
-        <img src={logo} alt="UTH Logo" className={styles.logo} />
+      <div className={styles.container}>
+        <div className={styles.left} style={{ backgroundImage: `url(${bg})` }}>
+          <div className={styles.overlay} />
+        </div>
 
-        <h2 className={styles.title}>ĐĂNG NHẬP HỆ THỐNG</h2>
-
-        <form onSubmit={handleSubmit} className={styles.form}>
-          {/* USERNAME */}
-          <div className={styles.inputGroup}>
-            <FontAwesomeIcon icon={faUser} />
-            <input
-              type="text"
-              name="username"
-              placeholder="Tài khoản đăng nhập"
-              value={form.username}
-              onChange={handleChange}
-              required
-            />
+        <div className={styles.right}>
+          <div className={styles.logoWrapper}>
+            <img src={logo} alt="logo" className={styles.logo} />
           </div>
 
-          {/* PASSWORD */}
-          <div className={styles.inputGroup}>
-            <FontAwesomeIcon icon={faLock} />
+          <h1 className={styles.title}>Đăng nhập</h1>
 
-            <input
-              type={showPassword ? "text" : "password"}
-              name="password"
-              placeholder="Mật khẩu"
-              value={form.password}
-              onChange={handleChange}
-              required
-            />
+          <form className={styles.form} onSubmit={handleLogin}>
+            <div className={styles.inputGroup}>
+              <FontAwesomeIcon icon={faUser} className={styles.icon} />
+              <input
+                  type="text"
+                  name="username"
+                  placeholder="Tên đăng nhập"
+                  value={form.username}
+                  onChange={handleChange}
+                  className={styles.input}
+              />
+            </div>
 
-            <span
-              className={styles.eye}
-              onClick={() => setShowPassword(!showPassword)}
+            <div className={styles.inputGroup}>
+              <FontAwesomeIcon icon={faLock} className={styles.icon} />
+              <input
+                  type={showPassword ? "text" : "password"}
+                  name="password"
+                  placeholder="Mật khẩu"
+                  value={form.password}
+                  onChange={handleChange}
+                  className={styles.input}
+              />
+              <FontAwesomeIcon
+                  icon={showPassword ? faEyeSlash : faEye}
+                  className={styles.eyeIcon}
+                  onClick={() => setShowPassword((prev) => !prev)}
+              />
+            </div>
+
+            {error && <p className={styles.error}>{error}</p>}
+
+            <button className={styles.submit} disabled={loading}>
+              {loading ? "ĐANG ĐĂNG NHẬP..." : "ĐĂNG NHẬP"}
+            </button>
+
+            <button
+                type="button"
+                className={styles.registerBtn}
+                onClick={() => navigate("/register")}
             >
-              <FontAwesomeIcon icon={showPassword ? faEyeSlash : faEye} />
-            </span>
-          </div>
+              ĐĂNG KÝ
+            </button>
+          </form>
 
-          {error && <p className={styles.error}>{error}</p>}
-
-          <button className={styles.submit} disabled={loading}>
-            {loading ? "ĐANG ĐĂNG NHẬP..." : "ĐĂNG NHẬP"}
-          </button>
-
-          <button
-            type="button"
-            className={styles.registerBtn}
-            onClick={() => navigate("/register")}
-          >
-            ĐĂNG KÝ
-          </button>
-        </form>
-
-        <p className={styles.forgot}>Quên mật khẩu?</p>
+          <p className={styles.forgot}>Quên mật khẩu?</p>
+        </div>
       </div>
-    </div>
   );
 }
 
