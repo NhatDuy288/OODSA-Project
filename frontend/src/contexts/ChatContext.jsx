@@ -96,10 +96,10 @@ export const ChatProvider = ({ children }) => {
     const topics = [
       `/topic/conversation/${conversationId}`,
       `/topic/conversation/${conversationId}/typing`,
-      `/topic/conversation/${conversationId}/read`
+      `/topic/conversation/${conversationId}/read`,
     ];
 
-    topics.forEach(topic => {
+    topics.forEach((topic) => {
       if (subscriptionCleanups.current[topic]) {
         subscriptionCleanups.current[topic]();
         delete subscriptionCleanups.current[topic];
@@ -119,13 +119,14 @@ export const ChatProvider = ({ children }) => {
 
         if (!conv.isGroup && conv.participants) {
           const otherParticipant = conv.participants.find(
-            (p) => p.username !== currentUser?.username
+              (p) => p.username !== currentUser?.username,
           );
 
           if (otherParticipant) {
-            isOnline = otherParticipant?.status === 'ONLINE';
+            isOnline = otherParticipant?.status === "ONLINE";
             if (userStatusRef.current[otherParticipant.username]) {
-              isOnline = userStatusRef.current[otherParticipant.username] === 'ONLINE';
+              isOnline =
+                  userStatusRef.current[otherParticipant.username] === "ONLINE";
             }
           }
         }
@@ -181,150 +182,184 @@ export const ChatProvider = ({ children }) => {
   }, []);
 
   // Subscribe to conversation events
-  const subscribeToConversationEvents = useCallback((conversationId) => {
-    if (!conversationId) return;
+  const subscribeToConversationEvents = useCallback(
+      (conversationId) => {
+        if (!conversationId) return;
 
-    console.log(`[ChatContext] Subscribing to events for conversation ${conversationId}`);
+        console.log(
+            `[ChatContext] Subscribing to events for conversation ${conversationId}`,
+        );
 
-    // Message updates
-    const msgCleanup = WebSocketService.subscribe(
-      `/topic/conversation/${conversationId}`,
-      (response) => {
-        if (response.readerId) {
-          setMessages(prev => prev.map(msg => ({ ...msg, isRead: true })));
-          return;
+        // Message updates
+        const msgCleanup = WebSocketService.subscribe(
+            `/topic/conversation/${conversationId}`,
+            (response) => {
+              if (response.readerId) {
+                setMessages((prev) =>
+                    prev.map((msg) => ({ ...msg, isRead: true })),
+                );
+                return;
+              }
+
+              // Update conversation preview
+              setConversations((prev) =>
+                  prev.map((conv) =>
+                      conv.id === conversationId
+                          ? {
+                            ...conv,
+                            lastMessage: response.content,
+                            lastMessageTime: response.createdAt,
+                          }
+                          : conv,
+                  ),
+              );
+
+              const currentConv = currentConversationRef.current;
+              if (currentConv && currentConv.id === conversationId) {
+                if (
+                    response.conversationId &&
+                    response.conversationId !== currentConv.id
+                )
+                  return;
+
+                setMessages((prev) => {
+                  if (prev.some((m) => m.id === response.id)) return prev;
+                  return [...prev, response];
+                });
+
+                setTypingUsers((prev) =>
+                    prev.filter((u) => u.userId !== response.sender?.id),
+                );
+
+                if (currentUser?.id && response.sender?.id !== currentUser.id) {
+                  markAsRead(conversationId);
+                }
+              }
+            },
+            false, // Not persistent - will be cleaned up when conversation changes
+        );
+
+        if (msgCleanup) {
+          subscriptionCleanups.current[`/topic/conversation/${conversationId}`] =
+              msgCleanup;
         }
 
-        // Update conversation preview
-        setConversations(prev => prev.map(conv =>
-          conv.id === conversationId
-            ? {
-              ...conv,
-              lastMessage: response.content,
-              lastMessageTime: response.createdAt,
-            }
-            : conv
-        ));
+        // Typing indicators
+        const typingCleanup = WebSocketService.subscribe(
+            `/topic/conversation/${conversationId}/typing`,
+            (typingData) => {
+              if (typingData.userId === currentUser?.id) return;
 
-        const currentConv = currentConversationRef.current;
-        if (currentConv && currentConv.id === conversationId) {
-          if (response.conversationId && response.conversationId !== currentConv.id) return;
+              setTypingUsers((prev) => {
+                if (typingData.typing) {
+                  if (prev.some((u) => u.userId === typingData.userId)) return prev;
+                  return [...prev, typingData];
+                } else {
+                  return prev.filter((u) => u.userId !== typingData.userId);
+                }
+              });
+            },
+            false,
+        );
 
-          setMessages(prev => {
-            if (prev.some(m => m.id === response.id)) return prev;
-            return [...prev, response];
-          });
+        if (typingCleanup) {
+          subscriptionCleanups.current[
+              `/topic/conversation/${conversationId}/typing`
+              ] = typingCleanup;
+        }
 
-          setTypingUsers(prev => prev.filter(u => u.userId !== response.sender?.id));
+        // Read receipts
+        const readCleanup = WebSocketService.subscribe(
+            `/topic/conversation/${conversationId}/read`,
+            (readReceipt) => {
+              setMessages((prev) => prev.map((msg) => ({ ...msg, isRead: true })));
+            },
+            false,
+        );
 
-          if (currentUser?.id && response.sender?.id !== currentUser.id) {
-            markAsRead(conversationId);
-          }
+        if (readCleanup) {
+          subscriptionCleanups.current[
+              `/topic/conversation/${conversationId}/read`
+              ] = readCleanup;
         }
       },
-      false // Not persistent - will be cleaned up when conversation changes
-    );
-
-    if (msgCleanup) {
-      subscriptionCleanups.current[`/topic/conversation/${conversationId}`] = msgCleanup;
-    }
-
-    // Typing indicators
-    const typingCleanup = WebSocketService.subscribe(
-      `/topic/conversation/${conversationId}/typing`,
-      (typingData) => {
-        if (typingData.userId === currentUser?.id) return;
-
-        setTypingUsers((prev) => {
-          if (typingData.typing) {
-            if (prev.some((u) => u.userId === typingData.userId)) return prev;
-            return [...prev, typingData];
-          } else {
-            return prev.filter((u) => u.userId !== typingData.userId);
-          }
-        });
-      },
-      false
-    );
-
-    if (typingCleanup) {
-      subscriptionCleanups.current[`/topic/conversation/${conversationId}/typing`] = typingCleanup;
-    }
-
-    // Read receipts
-    const readCleanup = WebSocketService.subscribe(
-      `/topic/conversation/${conversationId}/read`,
-      (readReceipt) => {
-        setMessages(prev => prev.map(msg => ({ ...msg, isRead: true })));
-      },
-      false
-    );
-
-    if (readCleanup) {
-      subscriptionCleanups.current[`/topic/conversation/${conversationId}/read`] = readCleanup;
-    }
-  }, [currentUser?.id, markAsRead]);
+      [currentUser?.id, markAsRead],
+  );
 
   // Select conversation
-  const selectConversation = useCallback((conversation) => {
-    console.log(`[ChatContext] Selecting conversation:`, conversation?.id);
+  const selectConversation = useCallback(
+      (conversation) => {
+        console.log(`[ChatContext] Selecting conversation:`, conversation?.id);
 
-    // Cleanup previous subscriptions
-    if (currentConversationRef.current?.id) {
-      const prevId = currentConversationRef.current.id;
-      cleanupSubscriptions(prevId);
-    }
+        // Cleanup previous subscriptions
+        if (currentConversationRef.current?.id) {
+          const prevId = currentConversationRef.current.id;
+          cleanupSubscriptions(prevId);
+        }
 
-    setCurrentConversation(conversation);
-    setTypingUsers([]);
-    setReadBy(null);
+        setCurrentConversation(conversation);
+        setTypingUsers([]);
+        setReadBy(null);
 
-    if (conversation?.id) {
-      loadMessages(conversation.id);
+        if (conversation?.id) {
+          loadMessages(conversation.id);
 
-      if (isWebSocketReady) {
-        subscribeToConversationEvents(conversation.id);
-        markAsRead(conversation.id);
-      } else {
-        console.log("[ChatContext] WebSocket not ready, will subscribe when connected");
-        // Queue subscription for when WebSocket is ready
-        const handleConnected = () => {
-          subscribeToConversationEvents(conversation.id);
-          markAsRead(conversation.id);
-          WebSocketService.removeConnectionListener(handleConnected);
-        };
-        WebSocketService.addConnectionListener(handleConnected);
-      }
-    } else {
-      setMessages([]);
-    }
-  }, [loadMessages, subscribeToConversationEvents, markAsRead, cleanupSubscriptions, isWebSocketReady]);
+          if (isWebSocketReady) {
+            subscribeToConversationEvents(conversation.id);
+            markAsRead(conversation.id);
+          } else {
+            console.log(
+                "[ChatContext] WebSocket not ready, will subscribe when connected",
+            );
+            // Queue subscription for when WebSocket is ready
+            const handleConnected = () => {
+              subscribeToConversationEvents(conversation.id);
+              markAsRead(conversation.id);
+              WebSocketService.removeConnectionListener(handleConnected);
+            };
+            WebSocketService.addConnectionListener(handleConnected);
+          }
+        } else {
+          setMessages([]);
+        }
+      },
+      [
+        loadMessages,
+        subscribeToConversationEvents,
+        markAsRead,
+        cleanupSubscriptions,
+        isWebSocketReady,
+      ],
+  );
 
   // Start new conversation
-  const startNewConversation = useCallback((user) => {
-    const existing = conversations.find((c) =>
-      c.participants?.some((p) => p.id === user.id)
-    );
+  const startNewConversation = useCallback(
+      (user) => {
+        const existing = conversations.find((c) =>
+            c.participants?.some((p) => p.id === user.id),
+        );
 
-    if (existing) {
-      selectConversation(existing);
-    } else {
-      const tempConv = {
-        id: null,
-        participants: [user],
-        isTemp: true,
-        recipientId: user.id,
-        name: user.fullName || user.username,
-        avatarUrl: user.avatar || user.avatarUrl,
-        isGroup: false,
-        isOnline: false,
-        lastMessage: "",
-        lastMessageTime: new Date().toISOString(),
-      };
-      setCurrentConversation(tempConv);
-      setMessages([]);
-    }
-  }, [conversations, selectConversation]);
+        if (existing) {
+          selectConversation(existing);
+        } else {
+          const tempConv = {
+            id: null,
+            participants: [user],
+            isTemp: true,
+            recipientId: user.id,
+            name: user.fullName || user.username,
+            avatarUrl: user.avatar || user.avatarUrl,
+            isGroup: false,
+            isOnline: false,
+            lastMessage: "",
+            lastMessageTime: new Date().toISOString(),
+          };
+          setCurrentConversation(tempConv);
+          setMessages([]);
+        }
+      },
+      [conversations, selectConversation],
+  );
 
   // Send message
   const sendMessage = useCallback((content, options = {}) => {
@@ -341,7 +376,10 @@ export const ChatProvider = ({ children }) => {
       return;
     }
 
-    if (Array.isArray(options.mentionedUserIds) && options.mentionedUserIds.length > 0) {
+    if (
+        Array.isArray(options.mentionedUserIds) &&
+        options.mentionedUserIds.length > 0
+    ) {
       messagePayload.mentionedUserIds = options.mentionedUserIds;
     }
 
@@ -378,129 +416,252 @@ export const ChatProvider = ({ children }) => {
       isSubscriptionsSetup.current = true;
 
       // Personal message queue
+      // TÌM và SỬA đoạn code này trong ChatContext.jsx (trong setupSubscriptions)
+
       const messagesCleanup = WebSocketService.subscribe(
-        `/user/queue/messages`,
-        (message) => {
-          const latestConversation = currentConversationRef.current;
-          const convId = message?.conversationId;
-          const currentConvId = latestConversation?.id;
-          const isFromMe = message?.sender?.id === currentUser?.id;
-          const isSystem = message?.isSystem === true;
+          `/user/queue/messages`,
+          (message) => {
+            const latestConversation = currentConversationRef.current;
+            const convId = message?.conversationId;
+            const currentConvId = latestConversation?.id;
+            const isFromMe = message?.sender?.id === currentUser?.id;
+            const isSystem = message?.isSystem === true;
 
-          // Play sound for new messages not in current conversation
-          if (!isFromMe && !isSystem && convId && convId !== currentConvId) {
-            const conv = conversationsRef.current?.find(c => c.id === convId);
-            const muted = conv?.muted === true;
-            if (!muted) playTingSound();
-          }
-
-          // Add to current conversation if matches
-          if (latestConversation && latestConversation.id === convId) {
-            setMessages(prev => {
-              if (prev.some(m => m.id === message.id)) return prev;
-              return [...prev, message];
+            console.log("[ChatProvider] Received message:", {
+              convId,
+              currentConvId,
+              isFromMe,
+              isTemp: latestConversation?.isTemp,
+              messageId: message.id,
+              sender: message.sender?.id,
             });
 
-            if (currentUser?.id && message.sender?.id !== currentUser.id) {
-              markAsRead(convId);
-            }
-          }
-
-          // Upgrade temp conversation
-          if (latestConversation?.isTemp && convId) {
-            setCurrentConversation(prev => ({
-              ...prev,
-              id: convId,
-              isTemp: false,
-            }));
-            subscribeToConversationEvents(convId);
-          }
-
-          // Update conversations list
-          setConversations(prev => {
-            const existing = prev.find(c => c.id === convId);
-            if (existing) {
-              return prev.map(conv =>
-                conv.id === convId
-                  ? {
-                    ...conv,
-                    lastMessage: message.content,
-                    lastMessageTime: message.createdAt,
-                  }
-                  : conv
+            // QUAN TRỌNG: Xử lý tin nhắn đầu tiên trong temp conversation
+            if (latestConversation?.isTemp && convId) {
+              console.log(
+                  "[ChatProvider] 🎉 First message in temp conversation, upgrading...",
               );
-            } else {
-              loadConversations();
-              return prev;
+
+              // ĐÂY LÀ PHẦN QUAN TRỌNG CẦN SỬA:
+              // Kiểm tra nếu đây là response cho tin nhắn đầu tiên CỦA CHÚNG TA
+              // hoặc là tin nhắn đầu tiên TỪ NGƯỜI KHÁC
+              const shouldUpgradeTempConv =
+                  // Trường hợp 1: Chúng ta gửi tin nhắn đầu tiên, server trả về với conversationId
+                  (isFromMe && convId) ||
+                  // Trường hợp 2: Người khác gửi tin nhắn đầu tiên cho chúng ta
+                  (!isFromMe && convId);
+
+              if (shouldUpgradeTempConv) {
+                console.log(
+                    "[ChatProvider] Upgrading temp conversation to real:",
+                    convId,
+                );
+
+                // Tạo conversation mới với ID thật từ server
+                const newConversation = {
+                  ...latestConversation,
+                  id: convId,
+                  isTemp: false,
+                  lastMessage: message.content,
+                  lastMessageTime: message.createdAt,
+                };
+
+                console.log(
+                    "[ChatProvider] New conversation after upgrade:",
+                    newConversation,
+                );
+
+                // Cập nhật current conversation
+                setCurrentConversation(newConversation);
+                currentConversationRef.current = newConversation;
+
+                // Subscribe to events for the new conversation
+                subscribeToConversationEvents(convId);
+
+                // Thêm tin nhắn vào danh sách hiện tại
+                setMessages((prev) => {
+                  // Kiểm tra nếu tin nhắn đã tồn tại (tránh duplicate)
+                  if (prev.some((m) => m.id === message.id)) {
+                    console.log(
+                        "[ChatProvider] Message already exists, not adding again",
+                    );
+                    return prev;
+                  }
+
+                  console.log("[ChatProvider] Adding message to list:", message);
+                  return [...prev, message];
+                });
+
+                // Nếu tin nhắn từ người khác, đánh dấu đã đọc
+                if (currentUser?.id && message.sender?.id !== currentUser.id) {
+                  markAsRead(convId);
+                }
+
+                // Cập nhật danh sách conversations
+                setConversations((prev) => {
+                  const existing = prev.find((c) => c.id === convId);
+                  if (!existing) {
+                    console.log("[ChatProvider] Adding new conversation to list");
+                    return [newConversation, ...prev];
+                  }
+                  console.log(
+                      "[ChatProvider] Updating existing conversation in list",
+                  );
+                  return prev.map((conv) =>
+                      conv.id === convId
+                          ? {
+                            ...conv,
+                            lastMessage: message.content,
+                            lastMessageTime: message.createdAt,
+                          }
+                          : conv,
+                  );
+                });
+
+                return; // Đã xử lý xong
+              }
             }
-          });
-        },
-        true // Persistent subscription
+
+            // Nếu không phải temp conversation, xử lý bình thường
+            // Thêm vào current conversation nếu trùng ID
+            if (latestConversation && latestConversation.id === convId) {
+              console.log(
+                  "[ChatProvider] Adding message to current conversation:",
+                  message.id,
+              );
+              setMessages((prev) => {
+                if (prev.some((m) => m.id === message.id)) {
+                  console.log(
+                      "[ChatProvider] Message already exists in current conv",
+                  );
+                  return prev;
+                }
+                return [...prev, message];
+              });
+
+              // Nếu tin nhắn từ người khác, đánh dấu đã đọc
+              if (currentUser?.id && message.sender?.id !== currentUser.id) {
+                markAsRead(convId);
+              }
+            } else if (convId && !isFromMe) {
+              // Nếu tin nhắn từ conversation khác, chỉ cập nhật danh sách
+              console.log(
+                  "[ChatProvider] Message from different conversation:",
+                  convId,
+              );
+            }
+
+            // Luôn cập nhật danh sách conversations với tin nhắn mới nhất
+            setConversations((prev) => {
+              const existing = prev.find((c) => c.id === convId);
+              if (existing) {
+                return prev.map((conv) =>
+                    conv.id === convId
+                        ? {
+                          ...conv,
+                          lastMessage: message.content,
+                          lastMessageTime: message.createdAt,
+                        }
+                        : conv,
+                );
+              } else if (convId) {
+                // Nếu có conversation mới từ server, load lại danh sách
+                console.log(
+                    "[ChatProvider] New conversation detected, reloading...",
+                );
+                setTimeout(() => {
+                  loadConversations();
+                }, 100);
+              }
+              return prev;
+            });
+          },
+          true,
       );
 
       if (messagesCleanup) {
-        subscriptionCleanups.current['/user/queue/messages'] = messagesCleanup;
+        subscriptionCleanups.current["/user/queue/messages"] = messagesCleanup;
       }
 
       // Read receipts
       const readReceiptsCleanup = WebSocketService.subscribe(
-        `/user/queue/read-receipts`,
-        (readReceipt) => {
-          const latestConversation = currentConversationRef.current;
-          if (latestConversation?.id === readReceipt.conversationId) {
-            setMessages(prev => prev.map(msg => ({ ...msg, isRead: true })));
-          }
-        },
-        true
+          `/user/queue/read-receipts`,
+          (readReceipt) => {
+            const latestConversation = currentConversationRef.current;
+            if (latestConversation?.id === readReceipt.conversationId) {
+              setMessages((prev) =>
+                  prev.map((msg) => ({ ...msg, isRead: true })),
+              );
+            }
+          },
+          true,
       );
 
       if (readReceiptsCleanup) {
-        subscriptionCleanups.current['/user/queue/read-receipts'] = readReceiptsCleanup;
+        subscriptionCleanups.current["/user/queue/read-receipts"] =
+            readReceiptsCleanup;
       }
 
       // User status updates - CRITICAL for realtime online/offline
       console.log("[ChatProvider] 🔔 Subscribing to /topic/user-status...");
       const statusCleanup = WebSocketService.subscribe(
-        `/topic/user-status`,
-        (statusMessage) => {
-          console.log(`[ChatProvider] 🟢 User status update received: ${statusMessage.username} -> ${statusMessage.status}`);
+          `/topic/user-status`,
+          (statusMessage) => {
+            console.log(
+                `[ChatProvider] 🟢 User status update received: ${statusMessage.username} -> ${statusMessage.status}`,
+            );
 
-          userStatusRef.current[statusMessage.username] = statusMessage.status;
+            userStatusRef.current[statusMessage.username] = statusMessage.status;
 
-          // Update conversations
-          setConversations(prev => {
-            const updated = prev.map(conv => {
-              if (!conv.isGroup && conv.participants) {
-                const participant = conv.participants.find(p => p.username === statusMessage.username);
-                if (participant) {
-                  console.log(`[ChatProvider] Updating conversation ${conv.id} isOnline to ${statusMessage.status === 'ONLINE'}`);
-                  return { ...conv, isOnline: statusMessage.status === 'ONLINE' };
+            // Update conversations
+            setConversations((prev) => {
+              const updated = prev.map((conv) => {
+                if (!conv.isGroup && conv.participants) {
+                  const participant = conv.participants.find(
+                      (p) => p.username === statusMessage.username,
+                  );
+                  if (participant) {
+                    console.log(
+                        `[ChatProvider] Updating conversation ${conv.id} isOnline to ${statusMessage.status === "ONLINE"}`,
+                    );
+                    return {
+                      ...conv,
+                      isOnline: statusMessage.status === "ONLINE",
+                    };
+                  }
                 }
-              }
-              return conv;
+                return conv;
+              });
+              return updated;
             });
-            return updated;
-          });
 
-          // Update current conversation
-          setCurrentConversation(prev => {
-            if (!prev || prev.isGroup) return prev;
-            const participant = prev.participants?.find(p => p.username === statusMessage.username);
-            if (participant) {
-              console.log(`[ChatProvider] Updating current conversation isOnline to ${statusMessage.status === 'ONLINE'}`);
-              return { ...prev, isOnline: statusMessage.status === 'ONLINE' };
-            }
-            return prev;
-          });
-        },
-        true
+            // Update current conversation
+            setCurrentConversation((prev) => {
+              if (!prev || prev.isGroup) return prev;
+              const participant = prev.participants?.find(
+                  (p) => p.username === statusMessage.username,
+              );
+              if (participant) {
+                console.log(
+                    `[ChatProvider] Updating current conversation isOnline to ${statusMessage.status === "ONLINE"}`,
+                );
+                return { ...prev, isOnline: statusMessage.status === "ONLINE" };
+              }
+              return prev;
+            });
+          },
+          true,
       );
 
       if (statusCleanup) {
-        subscriptionCleanups.current['/topic/user-status'] = statusCleanup;
-        console.log("[ChatProvider] ✅ Successfully subscribed to /topic/user-status");
+        subscriptionCleanups.current["/topic/user-status"] = statusCleanup;
+        console.log(
+            "[ChatProvider] ✅ Successfully subscribed to /topic/user-status",
+        );
       } else {
-        console.warn("[ChatProvider] ⚠️ Failed to subscribe to /topic/user-status");
+        console.warn(
+            "[ChatProvider] ⚠️ Failed to subscribe to /topic/user-status",
+        );
       }
 
       console.log("[ChatProvider] ✅ All subscriptions active");
@@ -508,7 +669,9 @@ export const ChatProvider = ({ children }) => {
 
     // Handle WebSocket connection
     const handleWebSocketConnected = () => {
-      console.log("[ChatProvider] WebSocket connected, setting up chat subscriptions");
+      console.log(
+          "[ChatProvider] WebSocket connected, setting up chat subscriptions",
+      );
 
       // Reset subscription flag to allow re-setup after reconnect
       isSubscriptionsSetup.current = false;
@@ -534,7 +697,9 @@ export const ChatProvider = ({ children }) => {
       console.log("[ChatProvider] WebSocket already connected, setting up...");
       setupSubscriptions();
     } else {
-      console.log("[ChatProvider] WebSocket not connected yet, will setup when connected");
+      console.log(
+          "[ChatProvider] WebSocket not connected yet, will setup when connected",
+      );
       // Try to connect
       if (!WebSocketService.isConnecting) {
         setTimeout(() => WebSocketService.connect(), 100);
@@ -548,8 +713,8 @@ export const ChatProvider = ({ children }) => {
       WebSocketService.removeConnectionListener(handleWebSocketConnected);
 
       // Cleanup all subscriptions
-      Object.values(subscriptionCleanups.current).forEach(cleanup => {
-        if (typeof cleanup === 'function') {
+      Object.values(subscriptionCleanups.current).forEach((cleanup) => {
+        if (typeof cleanup === "function") {
           cleanup();
         }
       });
@@ -558,37 +723,42 @@ export const ChatProvider = ({ children }) => {
 
       hasInitialized.current = false;
     };
-  }, [currentUser?.id, markAsRead, loadConversations, subscribeToConversationEvents]);
+  }, [
+    currentUser?.id,
+    markAsRead,
+    loadConversations,
+    subscribeToConversationEvents,
+  ]);
 
   return (
-    <ChatContext.Provider
-      value={{
-        leftTab,
-        setLeftTab,
-        selected,
-        setSelected,
-        conversations,
-        currentConversation,
-        messages,
-        isLoadingMessages,
-        currentUser,
-        typingUsers,
-        readBy,
+      <ChatContext.Provider
+          value={{
+            leftTab,
+            setLeftTab,
+            selected,
+            setSelected,
+            conversations,
+            currentConversation,
+            messages,
+            isLoadingMessages,
+            currentUser,
+            typingUsers,
+            readBy,
 
-        loadConversations,
-        loadMessages,
-        selectConversation,
-        startNewConversation,
-        sendMessage,
-        sendTypingStatus,
-        markAsRead,
-        setCurrentConversation,
-        setMessages,
-        setConversations,
-      }}
-    >
-      {children}
-    </ChatContext.Provider>
+            loadConversations,
+            loadMessages,
+            selectConversation,
+            startNewConversation,
+            sendMessage,
+            sendTypingStatus,
+            markAsRead,
+            setCurrentConversation,
+            setMessages,
+            setConversations,
+          }}
+      >
+        {children}
+      </ChatContext.Provider>
   );
 };
 

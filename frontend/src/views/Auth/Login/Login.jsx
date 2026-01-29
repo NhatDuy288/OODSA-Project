@@ -34,8 +34,8 @@ function Login() {
 
     try {
       setLoading(true);
-      await login(form); // 👉 gọi backend /auth/login
-      navigate("/messages"); // 👉 login thành công → vào trang protected
+      await login(form); //  gọi backend /auth/login
+      window.location.href = "/messages"; //  login thành công → vào trang protected
     } catch (err) {
       setError("Sai tài khoản hoặc mật khẩu");
     } finally {
