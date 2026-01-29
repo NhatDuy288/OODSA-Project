@@ -25,10 +25,9 @@ function AddFriend({ onClose }) {
   const [isSending, setIsSending] = useState(false);
   const [toast, setToast] = useState("");
 
-  const [foundUser, setFoundUser] = useState(null);
+  // --- SỬA: Đổi từ foundUser (null) sang foundUsers (mảng rỗng) ---
+  const [foundUsers, setFoundUsers] = useState([]);
   const [searched, setSearched] = useState(false);
-
-  const status = foundUser?.friendStatus;
 
   const handleWrapperClick = (e) => {
     if (e.target === e.currentTarget) onClose?.();
@@ -39,12 +38,17 @@ function AddFriend({ onClose }) {
     setTimeout(() => setToast(""), 2200);
   };
 
-  const handleCancel = async () => {
+  // --- SỬA: Các hàm xử lý bên dưới nhận tham số `user` cụ thể ---
+
+  const handleCancel = async (user) => {
     try {
       setIsSending(true);
-      await cancelFriendRequest(foundUser.id);
+      await cancelFriendRequest(user.id);
 
-      setFoundUser((u) => ({ ...u, friendStatus: "NONE" }));
+      // Cập nhật trạng thái cho đúng user trong danh sách
+      setFoundUsers((prev) => 
+        prev.map((u) => u.id === user.id ? { ...u, friendStatus: "NONE" } : u)
+      );
     } catch {
       showToast("❌ Thu hồi thất bại");
     } finally {
@@ -52,12 +56,14 @@ function AddFriend({ onClose }) {
     }
   };
 
-  const handleAccept = async () => {
+  const handleAccept = async (user) => {
     try {
       setIsSending(true);
-      await acceptFriendRequest(foundUser.requestId);
+      await acceptFriendRequest(user.requestId);
 
-      setFoundUser((u) => ({ ...u, friendStatus: "FRIEND", requestId: null }));
+      setFoundUsers((prev) => 
+        prev.map((u) => u.id === user.id ? { ...u, friendStatus: "FRIEND", requestId: null } : u)
+      );
     } catch {
       showToast("❌ Đồng ý thất bại");
     } finally {
@@ -65,12 +71,14 @@ function AddFriend({ onClose }) {
     }
   };
 
-  const handleUnfriend = async () => {
+  const handleUnfriend = async (user) => {
     try {
       setIsSending(true);
-      await unfriend(foundUser.id);
+      await unfriend(user.id);
 
-      setFoundUser((u) => ({ ...u, friendStatus: "NONE" }));
+      setFoundUsers((prev) => 
+        prev.map((u) => u.id === user.id ? { ...u, friendStatus: "NONE" } : u)
+      );
     } catch {
       showToast("❌ Hủy thất bại");
     } finally {
@@ -89,20 +97,21 @@ function AddFriend({ onClose }) {
     try {
       setIsSearching(true);
       setSearched(true);
-      setFoundUser(null);
+      setFoundUsers([]); // Reset danh sách trước khi tìm
 
       const res = await searchUserByUsername(username);
-      const user = res?.data ?? res;
+      const data = res?.data ?? res;
 
-      setFoundUser(user);
+      // Xử lý dữ liệu trả về (nếu là mảng hoặc object)
+      if (Array.isArray(data)) {
+        setFoundUsers(data);
+      } else if (data) {
+        setFoundUsers([data]);
+      }
     } catch (err) {
       console.log("searchUserByUsername error:", err);
-      const msg =
-        err?.response?.data?.message ||
-        err?.response?.data ||
-        "Không tìm thấy người dùng";
-      showToast(msg);
-      setFoundUser(null);
+      // Nếu lỗi 404 (không tìm thấy) thì danh sách rỗng, không cần báo lỗi toast
+      setFoundUsers([]);
     } finally {
       setIsSearching(false);
     }
@@ -118,15 +127,17 @@ function AddFriend({ onClose }) {
 
   const myId = me?.id;
 
-  const handleSendRequest = async () => {
-    const username = foundUser?.username;
+  const handleSendRequest = async (user) => {
+    const username = user?.username;
     if (!username) return;
 
     try {
       setIsSending(true);
       await sendFriendRequest(username);
 
-      setFoundUser((u) => ({ ...u, friendStatus: "PENDING_SENT" }));
+      setFoundUsers((prev) => 
+        prev.map((u) => u.id === user.id ? { ...u, friendStatus: "PENDING_SENT" } : u)
+      );
     } catch {
       showToast("❌ Gửi lời mời thất bại");
     } finally {
@@ -141,13 +152,9 @@ function AddFriend({ onClose }) {
         (data) => {
           console.log("✅ Friend accepted:", data);
 
-          setFoundUser((u) => {
-            if (!u || u.id !== data.userId) return u;
-            return {
-              ...u,
-              friendStatus: "FRIEND",
-            };
-          });
+          setFoundUsers((prev) => 
+            prev.map((u) => u.id === data.userId ? { ...u, friendStatus: "FRIEND" } : u)
+          );
         }
       );
     });
@@ -156,9 +163,6 @@ function AddFriend({ onClose }) {
       WebSocketService.unsubscribe("/user/queue/friend-accepted");
     };
   }, []);
-
-
-  const isMe = foundUser && myId && Number(foundUser.id) === Number(myId);
 
   const body = (
     <div className={styles.overlay} onClick={handleWrapperClick}>
@@ -177,7 +181,7 @@ function AddFriend({ onClose }) {
               value={keyword}
               onChange={(e) => setKeyword(e.target.value)}
               className={styles.input}
-              placeholder="Nhập username để tìm"
+              placeholder="Nhập tên hoặc username để tìm"
               onKeyDown={(e) => {
                 if (e.key === "Enter") handleSearch();
               }}
@@ -189,7 +193,7 @@ function AddFriend({ onClose }) {
                 className={styles.clear}
                 onClick={() => {
                   setKeyword("");
-                  setFoundUser(null);
+                  setFoundUsers([]);
                   setSearched(false);
                   inputRef.current?.focus();
                 }}
@@ -202,94 +206,101 @@ function AddFriend({ onClose }) {
           </div>
         </div>
 
-        <div className={styles.content}>
+        {/* Thêm style để cuộn nếu danh sách dài */}
+        <div className={styles.content} style={{ overflowY: 'auto', maxHeight: '400px' }}>
           {!searched && (
             <p className={styles.hint}>
-              Nhập <b>username</b> rồi bấm <b>Tìm kiếm</b>.
+              Nhập <b>username</b> hoặc <b>tên</b> rồi bấm <b>Tìm kiếm</b>.
             </p>
           )}
 
           {searched && isSearching && <div className={styles.stateText}>Đang tìm...</div>}
 
-          {searched && !isSearching && !foundUser && (
-            <div className={styles.stateText}>Không tìm thấy người dùng</div>
+          {searched && !isSearching && foundUsers.length === 0 && (
+            <div className={styles.stateText}>Không tìm thấy người dùng nào</div>
           )}
 
-          {foundUser && (
-            <div className={styles.resultCard}>
-              <div className={styles.left}>
-                <div className={styles.avatar}>
-                  <Avatar
-                    src={foundUser?.avatar || foundUser?.avatarUrl || ""}
-                    alt={foundUser?.fullName || foundUser?.username || "avatar"}
-                  />
+          {/* --- SỬA: Dùng vòng lặp map để hiển thị danh sách --- */}
+          {foundUsers.length > 0 && foundUsers.map((user) => {
+            const isMe = myId && Number(user.id) === Number(myId);
+            const status = user.friendStatus;
+
+            return (
+              <div className={styles.resultCard} key={user.id} style={{ marginBottom: '10px' }}>
+                <div className={styles.left}>
+                  <div className={styles.avatar}>
+                    <Avatar
+                      src={user?.avatar || user?.avatarUrl || ""}
+                      alt={user?.fullName || user?.username || "avatar"}
+                    />
+                  </div>
+
+                  <div className={styles.meta}>
+                    <p className={styles.name}>{user.fullName || "Người dùng"}</p>
+                    <p className={styles.sub}>@{user.username}</p>
+                  </div>
                 </div>
 
-                <div className={styles.meta}>
-                  <p className={styles.name}>{foundUser.fullName || "Người dùng"}</p>
-                  <p className={styles.sub}>@{foundUser.username}</p>
-                </div>
+                {isMe ? (
+                  <span className={styles.sub}>(Bạn)</span>
+                ) : (
+                  <div className={styles.actions}>
+                    <button
+                      className={`${styles.actionBtn} ${styles.actionGhost}`}
+                      onClick={() => {
+                        startNewConversation(user);
+                        setLeftTab(CHAT_TABS.MESSAGES);
+                        onClose();
+                      }}
+                      disabled={isSending}
+                    >
+                      Nhắn tin
+                    </button>
+
+                    {status === "NONE" && (
+                      <button
+                        className={`${styles.actionBtn} ${styles.actionPrimary}`}
+                        onClick={() => handleSendRequest(user)}
+                        disabled={isSending}
+                      >
+                        Kết bạn
+                      </button>
+                    )}
+
+                    {status === "PENDING_SENT" && (
+                      <button
+                        className={`${styles.actionBtn} ${styles.actionPrimary}`}
+                        onClick={() => handleCancel(user)}
+                        disabled={isSending}
+                      >
+                        Thu hồi
+                      </button>
+                    )}
+
+                    {status === "PENDING_RECEIVED" && (
+                      <button
+                        className={`${styles.actionBtn} ${styles.actionPrimary}`}
+                        onClick={() => handleAccept(user)}
+                        disabled={isSending}
+                      >
+                        Đồng ý
+                      </button>
+                    )}
+
+                    {status === "FRIEND" && (
+                      <button
+                        className={`${styles.actionBtn} ${styles.actionPrimary}`}
+                        onClick={() => handleUnfriend(user)}
+                        disabled={isSending}
+                      >
+                        Hủy kết bạn
+                      </button>
+                    )}
+                  </div>
+                )}
               </div>
-
-              {isMe ? (
-                <span className={styles}></span>
-              ) : (
-                <div className={styles.actions}>
-                  <button
-                    className={`${styles.actionBtn} ${styles.actionGhost}`}
-                    onClick={() => {
-                      startNewConversation(foundUser);
-                      setLeftTab(CHAT_TABS.MESSAGES);
-                      onClose();
-                    }}
-                    disabled={isSending}
-                  >
-                    Nhắn tin
-                  </button>
-
-                  {status === "NONE" && (
-                    <button
-                      className={`${styles.actionBtn} ${styles.actionPrimary}`}
-                      onClick={handleSendRequest}
-                      disabled={isSending}
-                    >
-                      Kết bạn
-                    </button>
-                  )}
-
-                  {status === "PENDING_SENT" && (
-                    <button
-                      className={`${styles.actionBtn} ${styles.actionPrimary}`}
-                      onClick={handleCancel}
-                      disabled={isSending}
-                    >
-                      Thu hồi
-                    </button>
-                  )}
-
-                  {status === "PENDING_RECEIVED" && (
-                    <button
-                      className={`${styles.actionBtn} ${styles.actionPrimary}`}
-                      onClick={handleAccept}
-                      disabled={isSending}
-                    >
-                      Đồng ý
-                    </button>
-                  )}
-
-                  {status === "FRIEND" && (
-                    <button
-                      className={`${styles.actionBtn} ${styles.actionPrimary}`}
-                      onClick={handleUnfriend}
-                      disabled={isSending}
-                    >
-                      Hủy kết bạn
-                    </button>
-                  )}
-                </div>
-              )}
-            </div>
-          )}
+            );
+          })}
         </div>
 
         <div className={styles.footer}>

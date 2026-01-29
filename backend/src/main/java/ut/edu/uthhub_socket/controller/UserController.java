@@ -17,6 +17,8 @@ import ut.edu.uthhub_socket.dto.response.UserSearchResponse;
 import ut.edu.uthhub_socket.security.UserDetailsImpl;
 import ut.edu.uthhub_socket.service.IUserService;
 
+import java.util.List;
+
 @RestController
 @RequestMapping("/api/users")
 public class UserController {
@@ -36,16 +38,18 @@ public class UserController {
     }
 
     @GetMapping("/search")
-    public ResponseEntity<UserSearchResponse> searchByUsername(
+    public ResponseEntity<List<UserSearchResponse>> searchByUsername(
             @RequestParam String username,
             @AuthenticationPrincipal UserDetailsImpl userDetails
     ) {
-        return ResponseEntity.ok(
-                userService.findUserByUsername(
-                        username,
-                        userDetails.getId()
-                )
+        List<UserSearchResponse> response = userService.findUserByUsername(
+                username,
+                userDetails.getId()
         );
+        if (response == null || response.isEmpty()) {
+            return ResponseEntity.notFound().build();
+        }
+        return ResponseEntity.ok(response);
     }
 
     @GetMapping("/{id}")

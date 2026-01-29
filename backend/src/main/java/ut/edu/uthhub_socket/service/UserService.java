@@ -92,20 +92,39 @@ public class UserService implements IUserService {
     }
 
     @Override
-    public UserSearchResponse findUserByUsername(String username, Integer meId) {
+    public List<UserSearchResponse> findUserByUsername(String keyword, Integer meId) {
+        List<UserSearchResponse> results = new java.util.ArrayList<>();
 
-        User target = userRepository.findByUsername(username)
-                .orElseThrow(() -> new RuntimeException("Không tìm thấy người dùng"));
+        // 1. Ưu tiên tìm chính xác theo Username/MSSV
+        Optional<User> exactUser = userRepository.findByUsername(keyword);
+        if (exactUser.isPresent()) {
+            results.add(convertUserToResponse(exactUser.get(), meId));
+            return results;
+        }
 
+        // 2. Nếu không thấy, tìm theo Họ Tên gần đúng
+        List<User> users = userRepository.findByFullNameContainingIgnoreCase(keyword);
+        for (User user : users) {
+            results.add(convertUserToResponse(user, meId));
+        }
+
+        // Trả về null nếu không tìm thấy ai (để Controller báo lỗi 404)
+        if (results.isEmpty()) {
+            return null;
+        }
+
+        return results;
+    }
+
+    // Hàm phụ: Giúp chuyển đổi thông tin User (Tách ra để code gọn hơn)
+    private UserSearchResponse convertUserToResponse(User target, Integer meId) {
         String friendStatus = "NONE";
-
         Integer requestId = null;
 
         Optional<Friend> relation = friendRepository.findRelation(meId, target.getId());
 
         if (relation.isPresent()) {
             Friend f = relation.get();
-
             if (f.getStatus() == FriendshipStatus.ACCEPTED) {
                 friendStatus = "FRIEND";
             } else if (f.getStatus() == FriendshipStatus.PENDING) {
