@@ -26,64 +26,63 @@ function Login() {
 
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
+    setError("");
   };
 
-  const handleLogin = async (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    setError("");
-    setLoading(true);
 
     try {
-      await login(form.username, form.password);
-      navigate("/feed"); // đổi từ messages -> feed
+      setLoading(true);
+      await login(form); // 👉 gọi backend /auth/login
+      navigate("/messages"); // 👉 login thành công → vào trang protected
     } catch (err) {
-      setError(err?.message || "Đăng nhập thất bại");
+      setError("Sai tài khoản hoặc mật khẩu");
     } finally {
       setLoading(false);
     }
   };
 
   return (
-      <div className={styles.container}>
-        <div className={styles.left} style={{ backgroundImage: `url(${bg})` }}>
-          <div className={styles.overlay} />
-        </div>
+      <div className={styles.wrapper}>
+        <div className={styles.loginBox}>
+          <img src={logo} alt="UTH Logo" className={styles.logo} />
 
-        <div className={styles.right}>
-          <div className={styles.logoWrapper}>
-            <img src={logo} alt="logo" className={styles.logo} />
-          </div>
+          <h2 className={styles.title}>ĐĂNG NHẬP HỆ THỐNG</h2>
 
-          <h1 className={styles.title}>Đăng nhập</h1>
-
-          <form className={styles.form} onSubmit={handleLogin}>
+          <form onSubmit={handleSubmit} className={styles.form}>
+            {/* USERNAME */}
             <div className={styles.inputGroup}>
-              <FontAwesomeIcon icon={faUser} className={styles.icon} />
+              <FontAwesomeIcon icon={faUser} />
               <input
                   type="text"
                   name="username"
-                  placeholder="Tên đăng nhập"
+                  placeholder="Tài khoản đăng nhập"
                   value={form.username}
                   onChange={handleChange}
-                  className={styles.input}
+                  required
               />
             </div>
 
+            {/* PASSWORD */}
             <div className={styles.inputGroup}>
-              <FontAwesomeIcon icon={faLock} className={styles.icon} />
+              <FontAwesomeIcon icon={faLock} />
+
               <input
                   type={showPassword ? "text" : "password"}
                   name="password"
                   placeholder="Mật khẩu"
                   value={form.password}
                   onChange={handleChange}
-                  className={styles.input}
+                  required
               />
-              <FontAwesomeIcon
-                  icon={showPassword ? faEyeSlash : faEye}
-                  className={styles.eyeIcon}
-                  onClick={() => setShowPassword((prev) => !prev)}
-              />
+
+              <span
+                  className={styles.eye}
+                  onClick={() => setShowPassword(!showPassword)}
+              >
+              <FontAwesomeIcon icon={showPassword ? faEyeSlash : faEye} />
+            </span>
             </div>
 
             {error && <p className={styles.error}>{error}</p>}
