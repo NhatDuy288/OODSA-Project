@@ -8,6 +8,7 @@ import {
 import {
     faGear,
     faArrowRightFromBracket,
+    faHouse,
 } from "@fortawesome/free-solid-svg-icons";
 import Avatar from "../../../components/Avatar/Avatar";
 import NavButton from "../../../components/NavButton/NavButton";
@@ -27,6 +28,9 @@ function SideNavigation() {
     const [isShowSetting, setIsShowSetting] = useState(false);
     const [isShowProfile, setIsShowProfile] = useState(false);
     const navigate = useNavigate();
+    const handleGoHome = () => {
+        navigate("/feed");
+    };
 
     const hanldLogout = () => {
         logout();
@@ -70,6 +74,9 @@ function SideNavigation() {
             <div className={styles.top}>
                 <Avatar variant="me" onClick={handleShowProfile} />
                 {modalProfile}
+                <NavButton onClick={handleGoHome} active={false}>
+                 <FontAwesomeIcon icon={faHouse} />
+                </NavButton>
                 <NavButton
                     onClick={() => setLeftTab(CHAT_TABS.MESSAGES)}
                     active={leftTab === CHAT_TABS.MESSAGES}
