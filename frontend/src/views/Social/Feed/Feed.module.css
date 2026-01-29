@@ -1,0 +1,11 @@
+.wrapper {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.list {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}

@@ -1,0 +1,73 @@
+.wrapper {
+    background: #ffffff;
+    border-radius: 16px;
+    padding: 12px;
+    border: 1px solid rgba(0, 0, 0, 0.05);
+    box-shadow: 0 1px 0 rgba(0, 0, 0, 0.03);
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.row {
+    display: flex;
+    gap: 10px;
+}
+
+.input {
+    flex: 1;
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    border-radius: 14px;
+    padding: 10px 12px;
+    resize: none;
+    outline: none;
+    font-size: 14px;
+    background: #f9fafb;
+}
+
+.input:focus {
+    background: #ffffff;
+    border-color: rgba(37, 99, 235, 0.55);
+}
+
+.row2 {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+.imageInput {
+    flex: 1;
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    border-radius: 14px;
+    padding: 10px 12px;
+    outline: none;
+    font-size: 14px;
+    background: #f9fafb;
+}
+
+.imageInput:focus {
+    background: #ffffff;
+    border-color: rgba(37, 99, 235, 0.55);
+}
+
+.postBtn {
+    border: none;
+    background: #2563eb;
+    color: #ffffff;
+    padding: 10px 14px;
+    border-radius: 14px;
+    font-weight: 800;
+    cursor: pointer;
+    transition: transform 0.08s ease;
+    min-width: 90px;
+}
+
+.postBtn:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+}
+
+.postBtn:active {
+    transform: scale(0.99);
+}
