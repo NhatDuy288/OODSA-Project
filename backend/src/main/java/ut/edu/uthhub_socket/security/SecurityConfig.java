@@ -3,6 +3,7 @@ package ut.edu.uthhub_socket.security;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
@@ -48,7 +49,7 @@ public class SecurityConfig {
 
         @Bean
         public AuthenticationManager authenticationManager(
-                        AuthenticationConfiguration config) throws Exception {
+                AuthenticationConfiguration config) throws Exception {
                 return config.getAuthenticationManager();
         }
 
@@ -67,24 +68,29 @@ public class SecurityConfig {
 
         @Bean
         public SecurityFilterChain securityFilterChain(HttpSecurity http)
-                        throws Exception {
+                throws Exception {
 
                 http
-                                .csrf(csrf -> csrf.disable())
-                                .exceptionHandling(ex -> ex.authenticationEntryPoint(unauthorizedHandler))
-                                .sessionManagement(session -> session
-                                                .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                                .authorizeHttpRequests(auth -> auth
-                                                .requestMatchers("/api/auth/**").permitAll()
-                                                .requestMatchers("/ws/**").permitAll()
-                                                .requestMatchers("/error").permitAll()
-                                                .anyRequest().authenticated());
+                        //  BẬT CORS Ở SPRING SECURITY
+                        .cors(cors -> cors.configurationSource(corsConfigurationSource()))
+                        .csrf(csrf -> csrf.disable())
+                        .exceptionHandling(ex -> ex.authenticationEntryPoint(unauthorizedHandler))
+                        .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                        .authorizeHttpRequests(auth -> auth
+                                //  Cho phép preflight
+                                .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+
+                                .requestMatchers("/api/auth/**").permitAll()
+                                .requestMatchers("/ws/**").permitAll()
+                                .requestMatchers("/error").permitAll()
+                                .anyRequest().authenticated()
+                        );
 
                 http.authenticationProvider(authenticationProvider());
 
                 http.addFilterBefore(
-                                authTokenFilter,
-                                UsernamePasswordAuthenticationFilter.class);
+                        authTokenFilter,
+                        UsernamePasswordAuthenticationFilter.class);
 
                 return http.build();
         }

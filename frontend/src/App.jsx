@@ -1,7 +1,5 @@
 import { toast } from "react-toastify";
-import { useState, useEffect } from "react";
-import reactLogo from "./assets/react.svg";
-import viteLogo from "/vite.svg";
+import { useEffect, useState } from "react";
 import "./App.css";
 import AppRouter from "./router/AppRouter";
 import { BackgroundChatProvider } from "./contexts/BackgroundChatContext";
@@ -12,25 +10,31 @@ import { WebSocketProvider } from "./contexts/WebSocketProvider";
 import { ChatProvider } from "./contexts/ChatContext";
 
 function App() {
-  return (
-    <>
-      <ToastContainer
-        position="top-right"
-        autoClose={4000}
-        newestOnTop
-        pauseOnHover
-      />
-      <BackgroundChatProvider>
-        <WebSocketProvider>
-          <NotificationsProvider>
-            <ChatProvider>
-              <AppRouter />
-            </ChatProvider>
-          </NotificationsProvider>
-        </WebSocketProvider>
-      </BackgroundChatProvider>
-    </>
-  );
+    const [, forceRerender] = useState(0);
+
+    useEffect(() => {
+        const handler = () => {
+            toast.error("Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại!");
+            forceRerender((x) => x + 1); // để ProtectedRoute re-check token và redirect
+        };
+        window.addEventListener("unauthorized", handler);
+        return () => window.removeEventListener("unauthorized", handler);
+    }, []);
+
+    return (
+        <>
+            <ToastContainer position="top-right" autoClose={4000} newestOnTop pauseOnHover />
+            <BackgroundChatProvider>
+                <WebSocketProvider>
+                    <NotificationsProvider>
+                        <ChatProvider>
+                            <AppRouter />
+                        </ChatProvider>
+                    </NotificationsProvider>
+                </WebSocketProvider>
+            </BackgroundChatProvider>
+        </>
+    );
 }
 
 export default App;

@@ -1,4 +1,5 @@
 import { createContext, useContext, useEffect, useMemo, useRef, useState } from "react";
+import { toast } from "react-toastify";
 import { AuthService } from "../services/auth.service";
 import WebSocketService from "../services/WebSocketService";
 import { getPosts, createPost as createPostApi, addComment as addCommentApi, toggleReaction } from "../api/posts";
@@ -25,6 +26,14 @@ function makeMeFromAuth() {
         friends: u?.friends || [],
     };
 }
+
+const getErrMsg = (e, fallback = "Có lỗi xảy ra") => {
+    const data = e?.response?.data;
+    if (typeof data === "string") return data;
+    if (data?.message) return data.message;
+    if (e?.message) return e.message;
+    return fallback;
+};
 
 export function SocialProvider({ children }) {
     const me = useMemo(() => makeMeFromAuth(), []);
@@ -84,7 +93,7 @@ export function SocialProvider({ children }) {
                     fetchedUserIds.current.add(String(id));
                     const u = await getUsersById(id);
                     upsertUsers([u]);
-                } catch (e) {
+                } catch {
                     // ignore
                 }
             })
@@ -96,38 +105,35 @@ export function SocialProvider({ children }) {
         setPosts((prev) => {
             const pid = String(post.id);
             const exists = prev.some((p) => String(p.id) === pid);
+
             let next = prev.map((p) => {
                 if (String(p.id) !== pid) return p;
                 const merged = { ...p, ...post };
 
-                // myReactionType là field theo user -> server broadcast sẽ gửi null,
-                // nên giữ lại giá trị hiện tại của user nếu incoming null/undefined.
+                // broadcast sẽ gửi myReactionType=null -> giữ lại của user
                 if (post?.myReactionType == null && p?.myReactionType != null) {
                     merged.myReactionType = p.myReactionType;
                 }
                 return merged;
             });
+
             if (!exists) {
                 next = mode === "prepend" ? [post, ...next] : [...next, post];
             }
-            // sort newest first
-            next.sort((a, b) => {
-                const ta = new Date(a.createdAt || 0).getTime();
-                const tb = new Date(b.createdAt || 0).getTime();
-                return tb - ta;
-            });
+
+            next.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
             return next;
         });
     };
 
     useEffect(() => {
-        // initial load
         (async () => {
             try {
                 const list = await getPosts();
                 setPosts(Array.isArray(list) ? list : []);
                 await ensureUsersForPosts(list);
             } catch (e) {
+                toast.error(getErrMsg(e, "Không tải được bảng tin"));
                 setPosts([]);
             }
         })();
@@ -136,30 +142,20 @@ export function SocialProvider({ children }) {
 
     useEffect(() => {
         const handleEvent = async (evt) => {
-            if (!evt) return;
-            const post = evt.post;
-            if (!post?.id) return;
-
-            if (evt.type === "POST_CREATED") {
-                upsertPost(post, "prepend");
-            } else {
-                upsertPost(post, "upsert");
-            }
-            await ensureUsersForPosts([post]);
+            if (!evt?.post?.id) return;
+            if (evt.type === "POST_CREATED") upsertPost(evt.post, "prepend");
+            else upsertPost(evt.post, "upsert");
+            await ensureUsersForPosts([evt.post]);
         };
 
         const cleanup = WebSocketService.subscribe("/topic/posts", handleEvent, true);
-        return () => {
-            if (typeof cleanup === "function") cleanup();
-        };
+        return () => typeof cleanup === "function" && cleanup();
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     const usersById = useMemo(() => {
         const map = {};
-        users.forEach((u) => {
-            map[String(u.id)] = u;
-        });
+        users.forEach((u) => (map[String(u.id)] = u));
         return map;
     }, [users]);
 
@@ -172,7 +168,7 @@ export function SocialProvider({ children }) {
             upsertPost(created, "prepend");
             await ensureUsersForPosts([created]);
         } catch (e) {
-            // ignore
+            toast.error(getErrMsg(e, "Đăng bài thất bại"));
         }
     };
 
@@ -182,7 +178,7 @@ export function SocialProvider({ children }) {
             upsertPost(updated, "upsert");
             await ensureUsersForPosts([updated]);
         } catch (e) {
-            // ignore
+            toast.error(getErrMsg(e, "Thả cảm xúc thất bại"));
         }
     };
 
@@ -191,12 +187,13 @@ export function SocialProvider({ children }) {
     const addComment = async (postId, text) => {
         const content = (text || "").trim();
         if (!content) return;
+
         try {
             const updated = await addCommentApi(postId, { content });
             upsertPost(updated, "upsert");
             await ensureUsersForPosts([updated]);
         } catch (e) {
-            // ignore
+            toast.error(getErrMsg(e, "Bình luận thất bại"));
         }
     };
 
