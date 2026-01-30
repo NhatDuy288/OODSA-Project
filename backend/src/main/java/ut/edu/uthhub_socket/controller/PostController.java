@@ -25,6 +25,26 @@ public class PostController {
     private final PostService postService;
     private final SimpMessagingTemplate messagingTemplate;
 
+    /**
+     * myReactionType là field theo từng user (personalized),
+     * nên broadcast ra /topic cho tất cả mọi người thì luôn set null để tránh sai lệch.
+     */
+    private SocialPostResponse sanitizeForBroadcast(SocialPostResponse post) {
+        if (post == null) return null;
+        return new SocialPostResponse(
+                post.getId(),
+                post.getUserId(),
+                post.getContent(),
+                post.getImageUrl(),
+                post.getCreatedAt(),
+                post.getReactionCounts(),
+                post.getTotalReactions(),
+                null,
+                post.getLikes(),
+                post.getComments()
+        );
+    }
+
     @GetMapping
     public ResponseEntity<List<SocialPostResponse>> getFeed(Authentication authentication) {
         try {
@@ -44,7 +64,7 @@ public class PostController {
             SocialPostResponse post = postService.createPost(authentication.getName(), request);
             messagingTemplate.convertAndSend(
                     "/topic/posts",
-                    new SocialPostEventResponse("POST_CREATED", post)
+                    new SocialPostEventResponse("POST_CREATED", sanitizeForBroadcast(post))
             );
             return ResponseEntity.ok(post);
         } catch (Exception e) {
@@ -63,7 +83,7 @@ public class PostController {
             SocialPostResponse post = postService.addComment(authentication.getName(), postId, request);
             messagingTemplate.convertAndSend(
                     "/topic/posts",
-                    new SocialPostEventResponse("POST_UPDATED", post)
+                    new SocialPostEventResponse("POST_UPDATED", sanitizeForBroadcast(post))
             );
             return ResponseEntity.ok(post);
         } catch (Exception e) {
@@ -82,7 +102,7 @@ public class PostController {
             SocialPostResponse post = postService.toggleReaction(authentication.getName(), postId, request);
             messagingTemplate.convertAndSend(
                     "/topic/posts",
-                    new SocialPostEventResponse("POST_UPDATED", post)
+                    new SocialPostEventResponse("POST_UPDATED", sanitizeForBroadcast(post))
             );
             return ResponseEntity.ok(post);
         } catch (Exception e) {

@@ -12,21 +12,18 @@ function firstName(fullName) {
 export default function CreatePost() {
     const { me, createPost } = useSocial();
     const [text, setText] = useState("");
-    const [imageUrl, setImageUrl] = useState("");
 
     const placeholder = useMemo(
         () => `Bạn đang nghĩ gì, ${firstName(me.fullName) || "bạn"}?`,
         [me.fullName]
     );
 
-    const canPost =
-        (text || "").trim().length > 0 || (imageUrl || "").trim().length > 0;
+    const canPost = (text || "").trim().length > 0;
 
     const handleSubmit = () => {
         if (!canPost) return;
-        createPost(text, imageUrl.trim());
+        createPost(text);
         setText("");
-        setImageUrl("");
     };
 
     return (
@@ -43,13 +40,6 @@ export default function CreatePost() {
             </div>
 
             <div className={styles.row2}>
-                <input
-                    className={styles.imageInput}
-                    value={imageUrl}
-                    onChange={(e) => setImageUrl(e.target.value)}
-                    placeholder="(Tuỳ chọn) Link ảnh..."
-                />
-
                 <button className={styles.postBtn} disabled={!canPost} onClick={handleSubmit}>
                     Đăng
                 </button>

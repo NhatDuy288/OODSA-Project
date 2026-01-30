@@ -19,7 +19,9 @@ import ut.edu.uthhub_socket.repository.IPostRepository;
 import ut.edu.uthhub_socket.repository.IUserRepository;
 
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 @Service
@@ -33,10 +35,13 @@ public class PostService {
 
     @Transactional
     public List<SocialPostResponse> getFeed(String username) {
+        Integer viewerId = userRepository.findByUsername(username)
+                .map(User::getId)
+                .orElse(null);
         List<Post> posts = postRepository.findFeed();
         List<SocialPostResponse> out = new ArrayList<>();
         for (Post p : posts) {
-            out.add(toDto(p));
+            out.add(toDto(p, viewerId));
         }
         return out;
     }
@@ -55,7 +60,7 @@ public class PostService {
         p.setAuthor(author);
         p.setContent(content.trim());
         Post saved = postRepository.save(p);
-        return toDto(saved);
+        return toDto(saved, author.getId());
     }
 
     @Transactional
@@ -87,7 +92,7 @@ public class PostService {
         }
 
         commentRepository.save(c);
-        return toDto(post);
+        return toDto(post, author.getId());
     }
 
     @Transactional
@@ -117,7 +122,7 @@ public class PostService {
             }
         }
 
-        return toDto(post);
+        return toDto(post, user.getId());
     }
 
     private ReactionType parseReactionType(String raw) {
@@ -129,7 +134,7 @@ public class PostService {
         }
     }
 
-    private SocialPostResponse toDto(Post p) {
+    private SocialPostResponse toDto(Post p, Integer viewerId) {
         SocialPostResponse dto = new SocialPostResponse();
         dto.setId(p.getId());
         dto.setUserId(p.getAuthor() != null ? p.getAuthor().getId() : null);
@@ -137,14 +142,32 @@ public class PostService {
         dto.setImageUrl("");
         dto.setCreatedAt(p.getCreatedAt() != null ? p.getCreatedAt().toString() : null);
 
-        // Likes (LIKE reaction)
+        // Reactions (đếm theo loại + xác định myReactionType)
+        Map<String, Integer> reactionCounts = new LinkedHashMap<>();
+        for (ReactionType t : ReactionType.values()) {
+            reactionCounts.put(t.name(), 0);
+        }
+
         List<Integer> likes = new ArrayList<>();
-        // NOTE: query theo postId để tránh phụ thuộc lazy load
-        for (PostReaction r : reactionRepository.findByPost_Id(p.getId())) {
+        String myReactionType = null;
+
+        List<PostReaction> reactions = reactionRepository.findByPost_Id(p.getId());
+        for (PostReaction r : reactions) {
+            if (r.getType() != null) {
+                String key = r.getType().name();
+                reactionCounts.put(key, reactionCounts.getOrDefault(key, 0) + 1);
+            }
             if (r.getType() == ReactionType.LIKE && r.getUser() != null) {
                 likes.add(r.getUser().getId());
             }
+            if (viewerId != null && r.getUser() != null && viewerId.equals(r.getUser().getId())) {
+                myReactionType = r.getType() != null ? r.getType().name() : null;
+            }
         }
+
+        dto.setReactionCounts(reactionCounts);
+        dto.setTotalReactions(reactions.size());
+        dto.setMyReactionType(myReactionType);
         dto.setLikes(likes);
 
         // Comments

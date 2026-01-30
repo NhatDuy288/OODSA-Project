@@ -81,12 +81,29 @@
     gap: 8px;
 }
 
-.likeDot {
-    width: 18px;
-    height: 18px;
+.reactionSummary {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.reactionPill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 8px;
     border-radius: 999px;
-    background: #ef4444;
-    display: inline-block;
+    background: #f3f4f6;
+    border: 1px solid rgba(0, 0, 0, 0.05);
+    color: #111827;
+    font-weight: 900;
+    font-size: 12px;
+}
+
+.reactionZero {
+    color: #6b7280;
+    font-weight: 800;
 }
 
 .statRight {
@@ -103,6 +120,53 @@
     gap: 6px;
     padding: 10px 12px;
     border-top: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.reactionWrap {
+    position: relative;
+}
+
+.reactionPicker {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: calc(100% + 8px);
+    margin: 0 auto;
+    width: max-content;
+    display: flex;
+    gap: 8px;
+    padding: 8px;
+    border-radius: 999px;
+    background: #ffffff;
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    box-shadow: 0 10px 24px rgba(0, 0, 0, 0.08);
+    z-index: 10;
+}
+
+.reactionPickBtn {
+    width: 36px;
+    height: 36px;
+    border-radius: 999px;
+    border: 1px solid rgba(0, 0, 0, 0.05);
+    background: #f9fafb;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.08s ease, background 0.15s ease;
+}
+
+.reactionPickBtn:hover {
+    background: #f3f4f6;
+}
+
+.reactionPickBtn:active {
+    transform: scale(0.99);
+}
+
+.reactionPickActive {
+    background: rgba(37, 99, 235, 0.12);
+    border-color: rgba(37, 99, 235, 0.35);
 }
 
 .actionBtn {

@@ -96,7 +96,17 @@ export function SocialProvider({ children }) {
         setPosts((prev) => {
             const pid = String(post.id);
             const exists = prev.some((p) => String(p.id) === pid);
-            let next = prev.map((p) => (String(p.id) === pid ? { ...p, ...post } : p));
+            let next = prev.map((p) => {
+                if (String(p.id) !== pid) return p;
+                const merged = { ...p, ...post };
+
+                // myReactionType là field theo user -> server broadcast sẽ gửi null,
+                // nên giữ lại giá trị hiện tại của user nếu incoming null/undefined.
+                if (post?.myReactionType == null && p?.myReactionType != null) {
+                    merged.myReactionType = p.myReactionType;
+                }
+                return merged;
+            });
             if (!exists) {
                 next = mode === "prepend" ? [post, ...next] : [...next, post];
             }
@@ -166,15 +176,17 @@ export function SocialProvider({ children }) {
         }
     };
 
-    const toggleLike = async (postId) => {
+    const react = async (postId, type) => {
         try {
-            const updated = await toggleReaction(postId, { type: "LIKE" });
+            const updated = await toggleReaction(postId, { type });
             upsertPost(updated, "upsert");
             await ensureUsersForPosts([updated]);
         } catch (e) {
             // ignore
         }
     };
+
+    const toggleLike = async (postId) => react(postId, "LIKE");
 
     const addComment = async (postId, text) => {
         const content = (text || "").trim();
@@ -195,6 +207,7 @@ export function SocialProvider({ children }) {
             usersById,
             posts,
             createPost,
+            react,
             toggleLike,
             addComment,
             setUsers,
