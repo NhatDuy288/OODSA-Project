@@ -10,6 +10,8 @@ import { AuthService } from "../../services/auth.service";
 import WebSocketService from "../../services/WebSocketService";
 import { getUsersById } from "../../api/users";
 import { bindTingUnlockOnce, playTingSound } from "../../utils/sound.jsx";
+import { useChat } from "../../contexts/ChatContext";
+import { CHAT_TABS, CONTACTS_TAB } from "../../constants/contactsMenu";
 
 function Notifications({ onClick }) {
   const [notifications, setNotifications] = useState([]);
@@ -20,7 +22,7 @@ function Notifications({ onClick }) {
 
   const userAvatarCacheRef = useRef(new Map());
   const subscriptionCleanupRef = useRef(null);
-
+  const { setLeftTab, setSelected } = useChat();
   const getSenderId = (n) => {
     return (
       n?.senderId ??
@@ -65,7 +67,7 @@ function Notifications({ onClick }) {
   };
 
   useEffect(() => {
-    bindTingUnlockOnce(); // unlock audio sau khi user click/press key
+    bindTingUnlockOnce(); 
     handleGetAllNotification();
     allBtnRef.current?.focus();
     
@@ -112,7 +114,13 @@ function Notifications({ onClick }) {
   };
 
   const handleRead = async (notification) => {
-    if (notification.isRead) return;
+    if (notification.style === "FRIEND_REQUEST") {
+        setLeftTab(CHAT_TABS.CONTACTS);             
+        setSelected(CONTACTS_TAB.FRIEND_REQUESTS);  
+        
+        if (onClick) onClick(); 
+    }
+    if (notification.isRead) return;  
 
     try {
       await updateIsRead(notification.id);
