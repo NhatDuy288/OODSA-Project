@@ -14,6 +14,7 @@ import Avatar from "../../../components/Avatar/Avatar";
 import NavButton from "../../../components/NavButton/NavButton";
 import styles from "./SideNavigation.module.css";
 import { useChat } from "../../../contexts/ChatContext";
+import { useNotifications } from "../../../contexts/NotificationsContext";
 import { CHAT_TABS } from "../../../constants/contactsMenu";
 import { logout } from "../../../api/auth";
 import { useState } from "react";
@@ -24,6 +25,7 @@ import ProfileModal from "../../../components/Profile/ProfileModal";
 
 function SideNavigation() {
     const { leftTab, setLeftTab } = useChat();
+    const { unreadCount } = useNotifications();
     const [isShowNotifications, setIsShowNotifications] = useState(false);
     const [isShowSetting, setIsShowSetting] = useState(false);
     const [isShowProfile, setIsShowProfile] = useState(false);
@@ -92,7 +94,31 @@ function SideNavigation() {
             </div>
             <div className={styles.bottom}>
                 <NavButton onClick={handleShowNotifications}>
+                <div style={{ position: "relative", display: "inline-block" }}>
                     <FontAwesomeIcon icon={faBell} />
+                <span
+                style={{
+                  position: "absolute",
+                  top: "-8px",     
+                  right: "-6px",  
+                  backgroundColor: "#FF3B30", 
+                  color: "white",
+                  fontSize: "10px",
+                  fontWeight: "bold",
+                  height: "18px",
+                  minWidth: "18px",
+                  borderRadius: "50%", 
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  border: "2px solid #fff", 
+                  padding: "0 4px",
+                  boxSizing: "border-box"
+                }}
+              >
+                {unreadCount > 9 ? "9+" : unreadCount}
+                </span>
+          </div>
                 </NavButton>
                 {modal}
                 <NavButton onClick={hanldeShowSetting}>
