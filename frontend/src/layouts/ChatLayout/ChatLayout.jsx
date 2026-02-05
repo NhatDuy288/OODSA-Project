@@ -3,10 +3,11 @@ import styles from "./ChatLayout.module.css";
 import ChatMain from "./ChatMain/ChatMain";
 import ConversationSidebar from "./ConversationSidebar/ConversationSidebar";
 import SideNavigation from "./SideNavigation/SideNavigation";
-import { CHAT_TABS } from "../../constants/contactsMenu";
+import { CHAT_TABS, CONTACTS_TAB } from "../../constants/contactsMenu";
 import { useChat } from "../../contexts/ChatContext";
+import ComingSoonBoard from "./ComingSoon/ComingSoonBoard";
 function ChatLayout() {
-  const { leftTab, currentConversation, setCurrentConversation } = useChat();
+  const { leftTab, currentConversation, setCurrentConversation, selected } = useChat();
   const [isCompact, setIsCompact] = useState(false);
 
   useEffect(() => {
@@ -44,7 +45,12 @@ function ChatLayout() {
   const handleBackToList = () => {
     setCurrentConversation(null);
   };
-
+  const isMaintenanceTab = 
+      leftTab === CHAT_TABS.CONTACTS && (
+        selected === CONTACTS_TAB.GROUPS || 
+        selected === CONTACTS_TAB.GROUP_INVITES
+      );
+  console.log("Tab lớn:", leftTab, "| Tab con:", selected, "| Bảo trì:", isMaintenanceTab);
   return (
     <div className={styles.wrapper}>
       <div className={styles.sideNavigation}>
@@ -57,10 +63,14 @@ function ChatLayout() {
       )}
       {shouldShowChatMain && (
         <div className={styles.chatMain}>
+        {isMaintenanceTab ? (
+            <ComingSoonBoard title="Tính năng đang phát triển" />
+          ) : (  
           <ChatMain
             isMobileMessages={isMobileMessages}
             onBackToList={handleBackToList}
           />
+      )}
         </div>
       )}
     </div>
