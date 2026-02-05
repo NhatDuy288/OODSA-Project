@@ -1,0 +1,90 @@
+.modalOverlay {
+  position: fixed;
+  width: 100vw;
+  height: 100vh;
+  top: 0;
+  left: 0;
+  z-index: 1000;
+}
+.wrapper {
+  display: flex;
+  flex-direction: column;
+  position: fixed;
+  align-items: stretch;
+  width: 360px;
+  height: auto;
+  background-color: var(--p-white);
+  border-radius: 15px;
+  left: 5%;
+  bottom: 5%;
+  box-shadow: rgba(0, 0, 0, 0.24) 0px 3px 8px;
+}
+
+.header {
+  height: 50px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 10px 0px 10px;
+}
+.header .title {
+  font-size: var(--h3-font-size);
+  font-weight: 600;
+}
+.content {
+  align-items: stretch;
+}
+.content .action {
+  display: flex;
+  align-items: center;
+  padding: 0px 10px;
+  gap: 8px;
+  padding-bottom: 10px;
+}
+.content .action button {
+  padding: 7px 12px;
+  outline: none;
+  border: none;
+  font-size: 14px;
+  font-weight: 500;
+  border-radius: 50px;
+  background-color: var(--p-white);
+  transition: all 0.3s ease;
+  cursor: pointer;
+}
+.content .action button:hover {
+  background-color: var(--p-hover);
+}
+.content .action .active {
+  background-color: var(--p-50);
+  color: var(--p-700);
+}
+.content .action button:focus {
+  background-color: var(--p-50);
+  color: var(--p-700);
+}
+
+/* .content .action button:focus-visible {
+  background-color: var(--p-50);
+  color: var(--p-700);
+} */
+.notifications {
+  align-items: stretch;
+  height: 450px;
+  padding: 0px 10px 10px 10px;
+  display: flex;
+
+  flex-direction: column;
+  gap: 3px;
+  overflow-y: auto;
+}
+.notifications::-webkit-scrollbar {
+  width: 10px;
+}
+.notifications::-webkit-scrollbar-track {
+  background: var(--p-white);
+}
+.notifications::-webkit-scrollbar-thumb {
+  background: var(--p-700);
+  border-radius: 5px;
+}
